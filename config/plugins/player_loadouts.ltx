@@ -1,0 +1,239 @@
+; This plugin determines the items a player spawns with when they create their character.
+
+; A custom loadout can be used if the "custom_loadout" value in axr_options.ltx is set to true.
+; Multiple weapons can be spawned at once by separating each section name with a comma.
+
+[custom]
+device_torch
+bandage = 5
+medkit = 3, 3
+money = 2000
+specops_outfit
+helm_hardhat
+weapons = wpn_abakan, wpn_pb
+wpn_binoc
+wpn_knife
+
+[shared]
+device_torch
+device_flashlight
+wpn_binoc
+wpn_knife
+money = 4900, 5000, 5100
+bandage = 2
+medkit
+addons_box
+
+[stalker_custom]
+;itm_gunsmith_toolkit  
+
+[bandit_custom]
+wpn_toz34_so
+ammo_12x70_buck
+
+[killer_custom]
+wpn_addon_silencer 
+
+[army_custom]
+wpn_ak74u_sk3
+ammo_5.45x39_fmj
+
+; Sleeping bag:
+itm_sleepbag
+
+[stalker]:shared, stalker_custom
+money = 300, 500, 700
+novice_outfit
+
+[bandit]:shared, bandit_custom, 
+bandit_novice_outfit
+money = 400, 600, 800
+
+[ecolog]:shared
+ecolog_guard_outfit
+money = 300, 500, 700, 1000
+
+[dolg]:shared
+dolg_novice_outfit
+money = 300, 500, 700, 1000
+
+[freedom]:shared
+money = 300, 500, 700, 1000
+svoboda_novice_outfit
+
+[killer]:shared, killer_custom
+merc_outfit
+money = 1000, 1500, 2000
+
+[army]:shared, army_custom
+army_outfit
+money = 300, 500, 700, 1000
+
+[monolith]:shared
+money = 300, 500, 700, 1000
+monolith_outfit
+
+[csky]:shared
+cs_novice_outfit
+money = 300, 500, 700
+
+[zombied]:stalker
+
+[1]
+antirad = 0, 1
+bandage = 1, 2
+bread = 0, 1
+conserva = 0, 1
+kolbasa = 0, 1
+vodka = 0, 1
+
+[2]
+antirad = 0, 1
+bandage = 0, 1
+bread = 0, 1
+energy_drink = 0, 1
+kolbasa = 1, 2
+vodka = 0, 1
+
+[3]
+bandage = 0, 1
+bread = 0, 1
+conserva = 1, 1
+energy_drink = 1, 1
+kolbasa = 0, 1
+
+[4]
+bandage = 0, 1
+bread = 0, 1
+energy_drink = 0, 1
+grenade_rgd5 = 0, 1
+kolbasa = 1, 2
+vodka = 0, 1
+
+[5]
+antirad = 0, 1
+bread = 0, 1
+conserva = 0, 1
+grenade_rgd5 = 0, 1
+kolbasa = 0, 1
+bandage = 0, 1
+vodka = 0, 1
+
+[choose_only_one]
+
+
+;//////////////////////////////////////////////////////////////////////////////////////////////////
+;
+; Starting weapons
+;
+;	Modified by DoctorX
+;	for DoctorX Call of The Zone 1.0
+;	September 22, 2019
+;
+;--------------------------------------------------------------------------------------------------
+
+; Starting weapons:
+; wpn_ak74u
+;wpn_beretta
+; wpn_bm16
+;wpn_colt1911
+; wpn_desert_eagle
+;wpn_fort
+; wpn_groza
+;wpn_hpsa
+; wpn_mp5
+; wpn_pb
+wpn_pm
+; wpn_protecta
+;wpn_sig220
+; wpn_sig550
+; wpn_spas12
+; wpn_toz34
+;wpn_usp
+;wpn_walther
+; wpn_wincheaster1300
+
+; \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+[stalker_weapons]
+wpn_pm
+;wpn_fort			
+;wpn_hpsa	
+wpn_colt1911		
+;wpn_beretta
+;wpn_colt1911
+wpn_tt33
+
+[bandit_weapons]
+wpn_pm
+wpn_tt33
+
+[ecolog_weapons]
+wpn_hpsa
+wpn_pmm
+;wpn_gsh18 
+;wpn_glock17
+;wpn_sig220
+;wpn_walther
+wpn_usp
+
+[killer_weapons]
+wpn_beretta
+wpn_glock17
+wpn_cz75
+
+[army_weapons]
+wpn_mp443  
+wpn_pmm  
+wpn_gsh18           
+
+[dolg_weapons]
+wpn_fort
+wpn_pmm 
+wpn_tt33_2
+wpn_pm
+wpn_pb 
+ 
+[freedom_weapons]
+wpn_beretta	
+wpn_walther
+;wpn_colt1911_sk2
+
+[csky_weapons]
+wpn_fiveseven 
+wpn_fnp45 
+wpn_fnp40 
+wpn_glock17  
+wpn_glock21   
+wpn_glock35  
+wpn_hpsa
+wpn_hpsa40
+
+[monolith_weapons]
+wpn_pm	
+wpn_pb		
+wpn_fort		
+wpn_hpsa	
+wpn_beretta	
+wpn_walther	
+wpn_sig220		
+wpn_colt1911_sk3
+
+[choose_only_one_stalker]:stalker_weapons
+
+[choose_only_one_bandit]:bandit_weapons
+
+[choose_only_one_killer]:killer_weapons
+
+[choose_only_one_army]:army_weapons
+
+[choose_only_one_dolg]:dolg_weapons
+
+[choose_only_one_freedom]:freedom_weapons
+
+[choose_only_one_ecolog]:ecolog_weapons
+
+[choose_only_one_csky]:csky_weapons
+
+[choose_only_one_monolith]:monolith_weapons
+
+[choose_only_one_zombied]:choose_only_one

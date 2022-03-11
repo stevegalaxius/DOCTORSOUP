@@ -1,0 +1,37 @@
+[logic@yan_saharov]
+suitable = {=check_npc_name(yan_stalker_sakharov)} true
+trade = misc\trade\trade_ecolog_sakharov.ltx
+prior = 200
+active = animpoint@yan_sakharov_cover
+can_select_weapon = false
+level_spot = trader
+dont_keep_items = true
+
+[animpoint@yan_sakharov_cover]
+cover_name = yan_sakharov_cover
+avail_animations = animpoint_stay_ohrana
+use_camp = false
+meet = meet
+combat_ignore_cond = {=actor_enemy =check_enemy_name(actor)} false, true
+combat_ignore_keep_when_attacked = true
+invulnerable = {!actor_enemy} true, false
+gather_items_enabled = false
+help_wounded_enabled = false
+corpse_detection_enabled = false
+reach_movement = run
+reach_distance = 1000
+
+[meet]
+close_snd_hello = yan_stalker_sakharov_greeting
+close_snd_bye = yan_stalker_sakharov_farewell
+close_anim 		= nil
+close_victim 	= nil
+far_anim 		= nil
+far_victim 		= nil
+close_distance  = 0
+far_distance 	= 0
+close_snd_distance = 3
+use = {=actor_enemy} false, true
+allow_break = false
+trade_enable = true
+meet_on_talking = false
