@@ -1,0 +1,104 @@
+--release 20181008
+function on_game_start()
+	RegisterScriptCallback("npc_on_update",npc_on_update)
+end
+
+function clamp(val,min,max)
+	local x = math.floor(val)
+	x = x > max and max or x
+	x = x < min and min or x
+	return x
+end
+
+local mej
+local m_data_key = 'strelocc_enemy_jam'
+function npc_on_update(npc,st)
+	
+	if not mej then
+		local m_data = alife_storage_manager.get_state()
+		if not m_data[m_data_key] then
+			m_data[m_data_key] = {}
+			mej = m_data[m_data_key]
+			mej.enabled = true
+			mej.debug = false
+			mej.guns = {}
+			mej.global_base = 0
+			mej.max_jam_chance = 25
+			mej.rank_chance = {
+				['novice'] = 15,
+				['trainee'] = 10,
+				['experienced'] = 5,
+				['professional'] = 2,
+				['veteran'] = 1,
+				['expert'] = 0,
+				['master'] = 0,
+				['legend'] = 0,
+			}
+		else
+			mej = m_data[m_data_key]
+		end
+	end
+	
+	local npc_id = npc:id()
+	local rank = ranks.get_obj_rank_name(npc)
+	if mej.enabled and db.actor and npc:alive() and level.object_by_id(npc_id) and npc:active_item() then
+		itm = npc:active_item()
+		local itm_section = itm:section()
+		if IsWeapon(itm) then
+			local gun_id = itm:id()
+			local ammo_now = itm:get_ammo_in_magazine()
+			local ammo_then = mej.guns[gun_id] and mej.guns[gun_id] or ammo_now
+			local ammo_spent = ammo_then - ammo_now 
+			
+			local rng = math.random(0,100)
+			local chance = mej.global_base + clamp(mej.rank_chance[rank]*ammo_spent,0,mej.max_jam_chance)
+			
+			if mej.debug and ammo_spent > 0 then printf('npc %s spent %s ammo this update (%s->%s)', npc_id, ammo_spent, ammo_then, ammo_now) end
+			if mej.debug and chance > 0 then printf('npc %s chance to jam is %s', npc_id, chance) end
+			
+			local jam = ammo_spent > 0 and rng < chance
+			
+			if jam then 
+				itm:unload_magazine()
+				mej.guns[gun_id] = 999
+				if mej.debug then printf('jamming gun %s on npc %s',itm:id(),npc_id) end
+			else
+				mej.guns[gun_id] = ammo_now
+			end
+		end
+	end
+end
+
+cmd = debug_cmd_list.command_get_list()
+
+function cmd.enemy_jam_set_chance_base(me,txt,owner,p)
+	local newch = tonumber(txt)
+	if newch then
+		mej.global_base = clamp(newch,0,100)
+		return 'base npc gun jam rate set to '..mej.global_base
+	else
+		return txt..' is not a valid number'
+	end
+end
+
+function cmd.enemy_jam_set_chance_max(me,txt,owner,p)
+	local newch = tonumber(txt)
+	if newch then
+		mej.max_jam_chance = clamp(newch,0,100)
+		return 'max npc gun jam rate set to '..mej.max_jam_chance
+	else
+		return txt..' is not a valid number'
+	end
+end
+
+function cmd.enemy_jam_debug(me,txt,owner,p)
+	mej.debug = not mej.debug
+	local status = mej.debug and 'enabled' or 'disabled'
+	return 'npc gun jam debug messages are '..status
+end
+
+function cmd.enemy_jam_toggle(me,txt,owner,p)
+	mej.enabled = not mej.enabled
+	local status = mej.enabled and 'enabled' or 'disabled'
+	return 'npc gun jam is '..status
+end

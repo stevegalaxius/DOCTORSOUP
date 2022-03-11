@@ -1,0 +1,38 @@
+-------------------------------------------------------------------------------------------
+-- Preserves extra round from reloading partially depleted handguns and closed bolt rifles.
+-- IJoyner, february 2018.
+-------------------------------------------------------------------------------------------
+
+function on_game_start()
+	RegisterScriptCallback("actor_on_hud_animation_end", actor_on_hud_animation_end)
+end
+
+function actor_on_hud_animation_end(item, section, motion, state, slot)
+	if motion == "anm_reload" or motion == "anm_reload_w_gl" then
+		if (system_ini():line_exist(item:section(),"ClosedBolt")) then return end
+		
+		local ammo = 1
+		local ammoClass = alun_utils.parse_list(system_ini(),item:section(),"ammo_class")
+		local currentAmmo = ammoClass[item:get_ammo_type()+1]
+		
+		if (get_console():get_bool("g_unlimitedammo")) then
+			item:set_ammo_elapsed(item:get_ammo_in_magazine()+ammo)
+		else
+			local toggleUpdate = true
+			
+			local function UpdateAmmo(temp, itm)
+				if toggleUpdate then
+					local se_item = alife():object(itm:id())
+					if se_item then
+						if se_item:section_name() == currentAmmo and itm:ammo_get_count() > 0 then
+							toggleUpdate = false
+							itm:ammo_set_count(itm:ammo_get_count()-ammo)
+							item:set_ammo_elapsed(item:get_ammo_in_magazine()+ammo)
+						end
+					end
+				end
+			end
+			db.actor:iterate_inventory(UpdateAmmo, nil)
+		end
+	end
+end

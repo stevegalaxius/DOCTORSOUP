@@ -1,0 +1,89 @@
+function check_knife()			
+	
+	local knife_deployed = check_knife_deployed()
+	
+	if (knife_deployed ~= knife_switch) then
+		if knife_deployed then
+			local snd_obj = sound_object ( [[weapons\knife_draw]] )
+			--snd_obj:play_no_feedback(db.actor, sound_object.s2d, 0, vector(), 1.0)
+			snd_obj:play_at_pos(db.actor, vector():set(0,0,0), 0, sound_object.s2d)
+		else 
+			local snd_obj = sound_object ( [[weapons\knife_holster]] )
+			--snd_obj:play_no_feedback(db.actor, sound_object.s2d, 0, vector(), 1.0)
+			snd_obj:play_at_pos(db.actor, vector():set(0,0,0), 0, sound_object.s2d)
+		end
+	end
+	knife_switch = knife_deployed
+end
+
+function check_knife_deployed()
+
+	local active_slot = db.actor:active_slot() --assigns value in active slot to variable named so
+
+	if active_slot == 1 then
+		return true --knife_deployed is TRUE if the active slot is 0
+	else
+		return false
+	end			
+		
+end
+
+function check_bolt()			
+	
+	local bolt_deployed = check_bolt_deployed()
+	
+	if (bolt_deployed ~= bolt_switch) then
+		if bolt_deployed then
+			local snd_obj = sound_object ( [[weapons\bolt_draw]] )
+			--snd_obj:play_no_feedback(db.actor, sound_object.s2d, 0, vector(), 1.0)
+			snd_obj:play_at_pos(db.actor, vector():set(0,0,0), 0, sound_object.s2d)
+		else 
+			local snd_obj = sound_object ( [[weapons\bolt_holster]] )
+			--snd_obj:play_no_feedback(db.actor, sound_object.s2d, 0, vector(), 1.0)
+			snd_obj:play_at_pos(db.actor, vector():set(0,0,0), 0, sound_object.s2d)
+		end
+	end
+	bolt_switch = bolt_deployed
+end
+
+function check_bolt_deployed()
+
+	local active_slot = db.actor:active_slot() --assigns value in active slot to variable named so
+
+	if active_slot == 6 then
+		return true --bolt_deployed is TRUE if the active slot is 5
+	else
+		return false
+	end			
+		
+end
+
+function check_grenade()			
+	
+	local grenade_deployed = check_grenade_deployed()
+	
+	if (grenade_deployed ~= grenade_switch) then
+		if grenade_deployed then
+			local snd_obj = sound_object ( [[weapons\grenade_draw]] )
+			--snd_obj:play_no_feedback(db.actor, sound_object.s2d, 0, vector(), 1.0)
+			snd_obj:play_at_pos(db.actor, vector():set(0,0,0), 0, sound_object.s2d)
+		else 
+			local snd_obj = sound_object ( [[weapons\grenade_holster]] )
+			--snd_obj:play_no_feedback(db.actor, sound_object.s2d, 0, vector(), 1.0)
+			snd_obj:play_at_pos(db.actor, vector():set(0,0,0), 0, sound_object.s2d)
+		end
+	end
+	grenade_switch = grenade_deployed
+end
+
+function check_grenade_deployed()
+
+	local active_slot = db.actor:active_slot() --assigns value in active slot to variable named so
+
+	if active_slot == 4 then
+		return true --grenade_deployed is TRUE if the active slot is 3
+	else
+		return false
+	end			
+		
+end

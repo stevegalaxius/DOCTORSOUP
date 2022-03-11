@@ -1,0 +1,2302 @@
+-- ============================================================
+--
+-- Dialog Templates (dialog_manager.script)
+--	CoC 1.5b r4 - DoctorX Questlines 2.0
+--
+--	Modified by: DoctorX
+--	Last revised: August 07, 2019
+--
+-- ============================================================
+
+
+--------------------------------------------------------------------------------
+-- Dialog manager --------------------------------------------------------------
+-- Made by Peacemaker ----------------------------------------------------------
+-- 11.01.08 --------------------------------------------------------------------
+--------------------------------------------------------------------------------
+-- modified by Alundaio
+
+RandomVal = 0
+disabled_phrases = {} -- temporary table of phrases which have been disabled during a conversation
+local quest_disabled_phrases = {} -- temporary table of phrases which have been disabled during a conversation
+local id_counter = 6 -- start from 5 because of adding root phrases
+
+phrase_table = {
+					hello = {},
+					job = {},
+					anomalies = {},
+					place = {},
+					information = {},
+					tips = {}
+				}
+priority_table = {
+					hello = {},
+					job = {},
+					anomalies = {},
+					place = {},
+					information = {},
+					tips = {}
+				 }
+
+
+----------------------- Alundaio easy scripted_dialog
+local saved_dialog
+--local cond_list = {}
+
+
+-- ________________________________________________________________________________________________
+-- START GAME TASK  DIALOG TEMPLATES-
+
+
+-- ////////////////////////////////////////////////////////////////////////////////////////////////
+--
+-- drx_ql_start_game_dialog_template function
+--
+-- ------------------------------------------------------------------------------------------------
+--
+--	Description:
+--		- Dialog on starting questline at a start game honcho
+--
+--	Usage:
+--		drx_ql_start_game_dialog_template( )
+--
+--	Parameters:
+--		none
+--
+--	Persistent storage:
+--		drx_ql_start_task (type: task name)
+--			- Task id of the starting task
+--
+--	Ini requirements:
+--		drx\drx_ql_config.ltx
+--			[dialog_settings]
+--				max_pre_desc (type: int)
+--					- Max number of pre-task description dialogs
+--
+--	Return value (type: nil):
+--		none
+--
+-- ------------------------------------------------------------------------------------------------
+--	Created by DoctorX
+--	for DoctorX Questlines 2.0
+--	Last modified May 06, 2018
+-- ------------------------------------------------------------------------------------------------
+
+-- Dialog structure for starting a questline:
+function drx_ql_start_game_dialog_template( dialog )
+
+	-- Location of the settings file:
+	local ini = ini_file( "drx\\drx_ql_config.ltx" )
+	if ( not ini ) then
+		printf( "DRX QL Error: Unable to generate start game dialog, cannot locate ini file" )
+		return false
+	end
+
+	-- Verify db.actor is available:
+	if ( not db.actor ) then
+		printf( "DRX QL Error: Unable to generate start game dialog, db.actor not available" )
+		return
+	end
+
+	-- Get start game task:
+	local start_task = utils.load_var( db.actor, "drx_ql_start_task", nil )
+	if ( not start_task ) then
+		printf( "DRX QL Error: Unable to generate start game dialog, start task not found" )
+		return
+	end
+
+	-- Update dialog manager:
+	saved_dialog = dialog
+
+	-- Actor addresses honcho:
+	add_dialog( "", 0, string.format( "%s_actor_text", start_task ) )
+
+	-- Pre-description dialogs:
+	local max_pre_desc_count = (ini:r_float_ex( "dialog_settings", "max_pre_desc" ) or 0)
+	local index = 0
+	for pre_desc_num = 1, ( max_pre_desc_count ) do
+
+		-- If no more pre-description text, NPC gives introduction:
+		add_dialog( index, (index + 1), string.format( "%s_npc_text", start_task ), string.format( "drx_ql_dialog_funcs.drx_ql_start_task_dont_has_pre_desc_%s", pre_desc_num ), "drx_ql_dialog_funcs.drx_ql_set_start_game_task_complete" )
+
+		-- NPC pre-task description:
+		add_dialog( index, (index + 2), string.format( "%s_pre_npc_%s", start_task, pre_desc_num ), string.format( "drx_ql_dialog_funcs.drx_ql_start_task_has_pre_desc_%s", pre_desc_num ) )
+
+			-- Actor pre-task description:
+			add_dialog( (index + 2), (index + 3), string.format( "%s_pre_actor_%s", start_task, pre_desc_num ) )
+
+		-- Increment the index:
+		index = (index + 3)
+
+	end
+
+				-- NPC gives introduction:
+				add_dialog( index, (index + 1), string.format( "%s_npc_text", start_task ), nil, "drx_ql_dialog_funcs.drx_ql_set_start_game_task_complete" )
+
+end
+
+-- \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
+
+-- ////////////////////////////////////////////////////////////////////////////////////////////////
+--
+-- drx_ql_meet_honcho_dialog_template function
+--
+-- ------------------------------------------------------------------------------------------------
+--
+--	Description:
+--		- Dialog on meeting a honcho to get a storyline task
+--
+--	Usage:
+--		drx_ql_meet_honcho_dialog_template( )
+--
+--	Parameters:
+--		none
+--
+--	Ini requirements:
+--		drx\drx_ql_config.ltx
+--			[dialog_settings]
+--				max_pre_desc (type: int)
+--					- Max number of pre-task description dialogs
+--
+--	Return value (type: nil):
+--		none
+--
+-- ------------------------------------------------------------------------------------------------
+--	Created by DoctorX
+--	for DoctorX Questlines 2.0
+--	Last modified May 06, 2018
+-- ------------------------------------------------------------------------------------------------
+
+-- Dialog structure for meeting a honcho to receive a storyline task:
+function drx_ql_meet_honcho_dialog_template( dialog )
+
+	-- Location of the settings file:
+	local ini = ini_file( "drx\\drx_ql_config.ltx" )
+	if ( not ini ) then
+		printf( "DRX QL Error: Unable to generate meet honcho dialog, cannot locate ini file" )
+		return false
+	end
+
+	-- Update dialog manager:
+	saved_dialog = dialog
+
+	-- Actor greets honcho:
+	add_dialog( "", 0, "drx_ql_str_meet_honcho", nil, "drx_ql_dialog_funcs.drx_ql_generate_sl_task" )
+
+	-- Pre-description dialogs:
+	local max_pre_desc_count = (ini:r_float_ex( "dialog_settings", "max_pre_desc" ) or 0)
+	local index = 0
+	for pre_desc_num = 1, ( max_pre_desc_count ) do
+
+		-- If no more pre-description text, NPC explains storyline task:
+		add_script_dialog( index, (index + 1), "drx_ql_dialog_funcs.drx_ql_task_text_job_desc", string.format( "drx_ql_dialog_funcs.drx_ql_task_dont_has_pre_desc_%s", pre_desc_num ) )
+
+			-- Actor accepts storyline task:
+			add_dialog( (index + 1), (index + 2), "drx_ql_str_accept_sl_task", "dialogs.npc_has_task", "drx_ql_dialog_funcs.drx_ql_give_task" )
+
+				-- NPC affirms acceptance:
+				add_dialog( (index + 2), (index + 3), drx_ql_dialog_funcs.drx_ql_random_phrase( "st_accepted_task" ) )
+
+					-- Actor thanks NPC:
+					add_dialog( (index + 3), (index + 4), "dm_universal_actor_exit_thanks" )
+
+		-- NPC pre-task description:
+		add_script_dialog( index, (index + 5), string.format( "drx_ql_dialog_funcs.drx_ql_task_text_pre_desc_npc_%s", pre_desc_num ), string.format( "drx_ql_dialog_funcs.drx_ql_task_has_pre_desc_%s", pre_desc_num ) )
+
+			-- Actor pre-task description:
+			add_script_dialog( (index + 5), (index + 6), string.format( "drx_ql_dialog_funcs.drx_ql_task_text_pre_desc_actor_%s", pre_desc_num ) )
+
+		-- Increment the index:
+		index = (index + 6)
+
+	end
+
+				-- NPC explains storyline task:
+				add_script_dialog( index, (index + 1), "drx_ql_dialog_funcs.drx_ql_task_text_job_desc" )
+
+					-- Actor accepts storyline task:
+					add_dialog( (index + 1), (index + 2), "drx_ql_str_accept_sl_task", nil, "drx_ql_dialog_funcs.drx_ql_give_task" )
+
+						-- NPC affirms acceptance:
+						add_dialog( (index + 2), (index + 3), drx_ql_dialog_funcs.drx_ql_random_phrase( "st_accepted_task" ) )
+
+							-- Actor thanks NPC:
+							add_dialog( (index + 3), (index + 4), "dm_universal_actor_exit_thanks" )
+
+end
+
+-- \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
+
+-- ////////////////////////////////////////////////////////////////////////////////////////////////
+--
+-- drx_ql_sl_task_completed_dialog_template function
+--
+-- ------------------------------------------------------------------------------------------------
+--
+--	Description:
+--		- Dialog on turning in a storyline task
+--		- Modification of dm_init_dynamic_task_completed_dialog (CoC 1.5b r4)
+--
+--	Usage:
+--		drx_ql_sl_task_completed_dialog_template( )
+--
+--	Parameters:
+--		none
+--
+--	Ini requirements:
+--		drx\drx_ql_config.ltx
+--			[dialog_settings]
+--				max_pre_desc (type: int)
+--					- Max number of pre-task description dialogs
+--
+--	Return value (type: nil):
+--		none
+--
+-- ------------------------------------------------------------------------------------------------
+--	Created by DoctorX
+--	for DoctorX Questlines 2.0
+--	Last modified August 15, 2018
+-- ------------------------------------------------------------------------------------------------
+
+-- Dialog structure for turning in a storyline task:
+function drx_ql_sl_task_completed_dialog_template( dialog )
+
+	-- Location of the settings file:
+	local ini = ini_file( "drx\\drx_ql_config.ltx" )
+	if ( not ini ) then
+		printf( "DRX QL Error: Unable to generate sl task complete dialog, cannot locate ini file" )
+		return false
+	end
+
+	-- Update dialog manager:
+	saved_dialog = dialog
+
+	-- Actor returns to npc and states job is done:
+	add_dialog( "", 0, "drx_ql_str_finished_sl_task", nil, "drx_ql_dialog_funcs.drx_ql_generate_sl_task" )
+
+		-- If not endgame, NPC thanks Actor and ends task:
+		add_script_dialog( 0, 1, "drx_ql_dialog_funcs.drx_ql_sl_task_finished_text", {"drx_ql_dialog_funcs.drx_ql_npc_dont_has_task", "drx_ql_dialog_funcs.drx_ql_not_is_end_game"}, "drx_ql_dialog_funcs.drx_ql_set_sl_task_complete" )
+
+			-- Actor thanks NPC and gets meet next honcho task:
+			add_dialog( 1, 3, "dm_universal_actor_exit_thanks", nil, "drx_ql_dialog_funcs.drx_ql_give_task" )
+
+		-- If endgame, NPC sends actor on first endgame questline task:
+		add_script_dialog( 0, 2, "drx_ql_dialog_funcs.drx_ql_end_game_text", {"drx_ql_dialog_funcs.drx_ql_npc_dont_has_task", "drx_ql_dialog_funcs.drx_ql_is_end_game"}, "drx_ql_dialog_funcs.drx_ql_set_sl_task_complete" )
+
+			-- Actor accepts and gets meet endgame honcho task:
+			add_dialog( 2, 4, "drx_ql_str_endgame_task_accept", nil, {"drx_ql_dialog_funcs.drx_ql_generate_endgame_task", "drx_ql_dialog_funcs.drx_ql_give_task"} )
+
+			-- Actor refuses and gets meet next honcho task:
+			add_dialog( 2, 5, "drx_ql_str_endgame_task_reject", nil, {"drx_ql_dialog_funcs.drx_ql_extend_questline", "drx_ql_dialog_funcs.drx_ql_give_task"} )
+
+	-- Pre-description dialogs:
+	local max_pre_desc_count = (ini:r_float_ex( "dialog_settings", "max_pre_desc" ) or 0)
+	local index = 0
+	for pre_desc_num = 1, ( max_pre_desc_count ) do
+
+		-- If no more pre-description text, NPC explains linked storyline task:
+		if ( pre_desc_num == 1 ) then
+			add_script_dialog( index, (index + 6), "drx_ql_dialog_funcs.drx_ql_task_text_job_desc", {"drx_ql_dialog_funcs.drx_ql_npc_has_task", "drx_ql_dialog_funcs.drx_ql_task_dont_has_pre_desc_1"}, "drx_ql_dialog_funcs.drx_ql_set_sl_task_complete" )
+		else
+			add_script_dialog( index, (index + 6), "drx_ql_dialog_funcs.drx_ql_task_text_job_desc", string.format( "drx_ql_dialog_funcs.drx_ql_task_dont_has_pre_desc_%s", pre_desc_num ) )
+		end
+
+				-- Actor accepts storyline task:
+				add_dialog( (index + 6), (index + 7), "drx_ql_str_accept_sl_task", "dialogs.npc_has_task", "drx_ql_dialog_funcs.drx_ql_give_task" )
+
+					-- NPC affirms acceptance:
+					add_dialog( (index + 7), (index + 8), drx_ql_dialog_funcs.drx_ql_random_phrase( "st_accepted_task" ) )
+
+						-- Actor thanks NPC:
+						add_dialog( (index + 8), (index + 9), "dm_universal_actor_exit_thanks" )
+
+		-- NPC pre-task description:
+		if ( pre_desc_num == 1 ) then
+			add_script_dialog( index, (index + 10), "drx_ql_dialog_funcs.drx_ql_task_text_pre_desc_npc_1", {"drx_ql_dialog_funcs.drx_ql_npc_has_task", "drx_ql_dialog_funcs.drx_ql_task_has_pre_desc_1"}, "drx_ql_dialog_funcs.drx_ql_set_sl_task_complete" )
+		else
+			add_script_dialog( index, (index + 10), string.format( "drx_ql_dialog_funcs.drx_ql_task_text_pre_desc_npc_%s", pre_desc_num ), string.format( "drx_ql_dialog_funcs.drx_ql_task_has_pre_desc_%s", pre_desc_num ) )
+		end
+
+				-- Actor pre-task description:
+				add_script_dialog( (index + 10), (index + 11), string.format( "drx_ql_dialog_funcs.drx_ql_task_text_pre_desc_actor_%s", pre_desc_num ) )
+
+		-- Increment the index:
+		index = (index + 11)
+
+	end
+
+					-- NPC explains storyline task:
+					add_script_dialog( index, (index + 1), "drx_ql_dialog_funcs.drx_ql_task_text_job_desc" )
+
+						-- Actor accepts storyline task:
+						add_dialog( (index + 1), (index + 2), "drx_ql_str_accept_sl_task", nil, "drx_ql_dialog_funcs.drx_ql_give_task" )
+
+							-- NPC affirms acceptance:
+							add_dialog( (index + 2), (index + 3), drx_ql_dialog_funcs.drx_ql_random_phrase( "st_accepted_task" ) )
+
+								-- Actor thanks NPC:
+								add_dialog( (index + 3), (index + 4), "dm_universal_actor_exit_thanks" )
+
+end
+
+-- \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
+
+-- ________________________________________________________________________________________________
+-- DYNAMIC TASK  DIALOG TEMPLATES-
+
+
+-- ////////////////////////////////////////////////////////////////////////////////////////////////
+--
+-- drx_ql_safecracker_dialog_template function
+--
+-- ------------------------------------------------------------------------------------------------
+--
+--	Description:
+--		- Dialog on requesting a safecracker task
+--
+--	Usage:
+--		drx_ql_safecracker_dialog_template( )
+--
+--	Parameters:
+--		none
+--
+--	Return value (type: nil):
+--		none
+--
+-- ------------------------------------------------------------------------------------------------
+--	Created by DoctorX
+--	for DoctorX Questlines 2.0
+--	Last modified August 29, 2018
+-- ------------------------------------------------------------------------------------------------
+
+-- Dialog structure for requesting a safecracker task:
+function drx_ql_safecracker_dialog_template( dialog )
+
+	-- Update dialog manager:
+	saved_dialog = dialog
+
+	-- Actor requests task:
+	add_dialog( "", 0, "st_ordered_task_query", nil, "drx_ql_dialog_funcs.drx_ql_safecracker_reset_task" )
+
+		-- NPC starts safecracker dialog:
+		add_dialog( 0, 1, "drx_ql_str_safecracker_npc_start", nil, nil )
+
+			-- Actor replies:
+			add_dialog( 1, 2, "drx_ql_str_safecracker_actor_reply", nil, nil )
+
+				-- NPC offers safecracker task:
+				add_dialog( 2, 3, "drx_ql_str_safecracker_npc_offer", nil, nil )
+
+					-- Actor accepts offer::
+					add_dialog( 3, 4, "drx_ql_str_safecracker_actor_accept", nil, nil )
+
+						-- NPC opens safe:
+						add_script_dialog( 4, 5, "drx_ql_dialog_funcs.drx_ql_safecracker_open_safe_text", nil, nil )
+
+							-- Actor agrees:
+							add_dialog( 5, 6, "drx_ql_str_safecracker_actor_agree", nil, "drx_ql_dialog_funcs.drx_ql_safecracker_pick_item" )
+
+								-- NPC presents items:
+								local index = drx_ql_safecracker_dialog_template_present_item( 6, 1 )
+
+					-- Actor rejects offer::
+					add_dialog( 3, (index + 1), "drx_ql_str_safecracker_actor_reject", nil, nil )
+
+end
+
+
+-- Present safecracker items dialog:
+function drx_ql_safecracker_dialog_template_present_item( index, item_number )
+
+	-- Location of the settings file:
+	local ini = ini_file( "drx\\drx_ql_config.ltx" )
+	if ( not ini ) then
+		printf( "DRX QL Error: Unable to generate safecracker dialog, cannot locate ini file" )
+		return index
+	end
+
+	-- Get the reward item count:
+	local reward_count = (ini:r_float_ex( "safecracker_task_props", "reward_count" ) or 0)
+
+	-- Check if all item dialog slots have been loaded:
+	if ( item_number >= (reward_count * 2) ) then
+		return index
+	end
+
+	-- NPC presents item:
+	add_script_dialog( index, (index + 2), string.format( "drx_ql_dialog_funcs.drx_ql_safecracker_present_item_%s_text", item_number ), {"drx_ql_dialog_funcs.drx_ql_safecracker_actor_not_has_max", "drx_ql_dialog_funcs.drx_ql_safecracker_npc_not_has_max"}, nil )
+
+		-- Actor keeps item:
+		local index_prime = (index + 2)
+		add_dialog( index_prime, (index + 3), "drx_ql_str_safecracker_actor_keep_item", nil, {"drx_ql_dialog_funcs.drx_ql_safecracker_add_actor_item", "drx_ql_dialog_funcs.drx_ql_safecracker_pick_item"} )
+
+			-- NPC announces actor has max items:
+			add_script_dialog( (index + 3), (index + 4), "drx_ql_dialog_funcs.drx_ql_safecracker_actor_max_text", "drx_ql_dialog_funcs.drx_ql_safecracker_actor_has_max", "drx_ql_dialog_funcs.drx_ql_safecracker_give_rewards" )
+
+			-- NPC presents next item:
+			index = drx_ql_safecracker_dialog_template_present_item( (index + 3), (item_number + 1) )
+
+		-- Actor gives item to NPC:
+		add_dialog( index_prime, (index + 2), "drx_ql_str_safecracker_npc_keep_item", nil, {"drx_ql_dialog_funcs.drx_ql_safecracker_add_npc_item", "drx_ql_dialog_funcs.drx_ql_safecracker_pick_item"} )
+
+			-- NPC announces npc has max items:
+			add_script_dialog( (index + 2), (index + 3), "drx_ql_dialog_funcs.drx_ql_safecracker_npc_max_text", "drx_ql_dialog_funcs.drx_ql_safecracker_npc_has_max", "drx_ql_dialog_funcs.drx_ql_safecracker_give_rewards" )
+
+			-- NPC presents next item:
+			index = drx_ql_safecracker_dialog_template_present_item( (index + 2), (item_number + 1) )
+
+	-- Set return value:
+	return (index + 1)
+
+end
+
+-- \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
+
+-- ////////////////////////////////////////////////////////////////////////////////////////////////
+--
+-- drx_ql_sim_task_dialog_template function
+--
+-- ------------------------------------------------------------------------------------------------
+--
+--	Description:
+--		- Dialog on requesting a simulation task from a generic npc
+--		- Modification of dm_init_sim_dynamic_task_dialog (CoC 1.5b r4)
+--
+--	Usage:
+--		drx_ql_sim_task_dialog_template( )
+--
+--	Parameters:
+--		none
+--
+--	Ini requirements:
+--		drx\drx_ql_config.ltx
+--			[dialog_settings]
+--				max_pre_desc (type: int)
+--					- Max number of pre-task description dialogs
+--
+--	Return value (type: nil):
+--		none
+--
+-- ------------------------------------------------------------------------------------------------
+--	Created by DoctorX
+--	for DoctorX Questlines 2.0
+--	Last modified May 06, 2018
+-- ------------------------------------------------------------------------------------------------
+
+-- Dialog structure for requesting a simulation task:
+function drx_ql_sim_task_dialog_template( dialog )
+
+	-- Location of the settings file:
+	local ini = ini_file( "drx\\drx_ql_config.ltx" )
+	if ( not ini ) then
+		printf( "DRX QL Error: Unable to generate sim task dialog, cannot locate ini file" )
+		return false
+	end
+
+	-- Update dialog manager:
+	saved_dialog = dialog
+
+	-- Actor requests simulation task:
+	add_dialog( "", 0, "st_ordered_task_query", nil, "drx_ql_dialog_funcs.drx_ql_generate_sim_task" )
+
+	-- Pre-description dialogs:
+	local max_pre_desc_count = (ini:r_float_ex( "dialog_settings", "max_pre_desc" ) or 0)
+	local index = 0
+	for pre_desc_num = 1, ( max_pre_desc_count ) do
+
+		-- If no more pre-description text, NPC explains simulation task:
+		add_script_dialog( index, (index + 1), "drx_ql_dialog_funcs.drx_ql_task_text_job_desc", string.format( "drx_ql_dialog_funcs.drx_ql_task_dont_has_pre_desc_%s", pre_desc_num ) )
+
+			-- Actor accepts simulation task:
+			add_dialog( (index + 1), (index + 2), "st_ordered_task_accept", "dialogs.npc_has_task", "drx_ql_dialog_funcs.drx_ql_give_task" )
+
+				-- NPC affirms acceptance:
+				add_dialog( (index + 2), (index + 3), drx_ql_dialog_funcs.drx_ql_random_phrase( "st_accepted_task" ) )
+
+					-- Actor thanks NPC:
+					add_dialog( (index + 3), (index + 4), "dm_universal_actor_exit_thanks" )
+
+			-- Actor refuses simulation task:
+			add_dialog( (index + 1), (index + 5), "dm_universal_actor_exit" )
+
+		-- NPC pre-task description:
+		add_script_dialog( index, (index + 6), string.format( "drx_ql_dialog_funcs.drx_ql_task_text_pre_desc_npc_%s", pre_desc_num ), string.format( "drx_ql_dialog_funcs.drx_ql_task_has_pre_desc_%s", pre_desc_num ) )
+
+			-- Actor pre-task description:
+			add_script_dialog( (index + 6), (index + 7), string.format( "drx_ql_dialog_funcs.drx_ql_task_text_pre_desc_actor_%s", pre_desc_num ) )
+
+		-- Increment the index:
+		index = (index + 7)
+
+	end
+
+				-- NPC explains simulation task:
+				add_script_dialog( index, (index + 1), "drx_ql_dialog_funcs.drx_ql_task_text_job_desc" )
+
+					-- Actor accepts simulation task:
+					add_dialog( (index + 1), (index + 2), "st_ordered_task_accept", nil, "drx_ql_dialog_funcs.drx_ql_give_task" )
+
+						-- NPC affirms acceptance:
+						add_dialog( (index + 2), (index + 3), drx_ql_dialog_funcs.drx_ql_random_phrase( "st_accepted_task" ) )
+
+							-- Actor thanks NPC:
+							add_dialog( (index + 3), (index + 4), "dm_universal_actor_exit_thanks" )
+
+					-- Actor refuses simulation task:
+					add_dialog( (index + 1), (index + 5), "dm_universal_actor_exit" )
+
+end
+
+-- \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
+
+-- ////////////////////////////////////////////////////////////////////////////////////////////////
+--
+-- drx_ql_honcho_task_dialog_template function
+--
+-- ------------------------------------------------------------------------------------------------
+--
+--	Description:
+--		- Dialog on requesting a dynamic task from an important npc
+--		- Modification of dm_init_dynamic_task_dialog (CoC 1.5b r4)
+--
+--	Usage:
+--		drx_ql_honcho_task_dialog_template( )
+--
+--	Parameters:
+--		none
+--
+--	Ini requirements:
+--		drx\drx_ql_config.ltx
+--			[dialog_settings]
+--				max_pre_desc (type: int)
+--					- Max number of pre-task description dialogs
+--
+--	Return value (type: nil):
+--		none
+--
+-- ------------------------------------------------------------------------------------------------
+--	Created by DoctorX
+--	for DoctorX Questlines 2.0
+--	Last modified January 25, 2019
+-- ------------------------------------------------------------------------------------------------
+
+-- Dialog structure for requesting a honcho task:
+function drx_ql_honcho_task_dialog_template( dialog )
+
+	-- Location of the settings file:
+	local ini = ini_file( "drx\\drx_ql_config.ltx" )
+	if ( not ini ) then
+		printf( "DRX QL Error: Unable to generate honcho task dialog, cannot locate ini file" )
+		return false
+	end
+
+	-- Update dialog manager:
+	saved_dialog = dialog
+
+	-- Actor requests honcho task:
+	add_dialog( "", 0, "st_ordered_task_query", nil, "drx_ql_dialog_funcs.drx_ql_generate_dynamic_task" )
+
+	-- Pre-description dialogs:
+	local max_pre_desc_count = (ini:r_float_ex( "dialog_settings", "max_pre_desc" ) or 0)
+	local index = 0
+	for pre_desc_num = 1, ( max_pre_desc_count ) do
+
+		-- If no more pre-description text, NPC explains honcho task:
+		add_script_dialog( index, (index + 1), "drx_ql_dialog_funcs.drx_ql_task_text_job_desc", string.format( "drx_ql_dialog_funcs.drx_ql_task_dont_has_pre_desc_%s", pre_desc_num ) )
+
+			-- Actor accepts honcho task:
+			add_dialog( (index + 1), (index + 2), "st_ordered_task_accept", "dialogs.npc_has_task", "drx_ql_dialog_funcs.drx_ql_give_task" )
+
+				-- NPC affirms acceptance:
+				add_dialog( (index + 2), (index + 3), drx_ql_dialog_funcs.drx_ql_random_phrase( "st_accepted_task" ) )
+
+					-- Actor thanks NPC:
+					add_dialog( (index + 3), (index + 4), "dm_universal_actor_exit_thanks" )
+
+			-- Actor refuses honcho task:
+			add_dialog( (index + 1), (index + 5), "dm_universal_actor_exit" )
+
+		-- NPC pre-task description:
+		add_script_dialog( index, (index + 6), string.format( "drx_ql_dialog_funcs.drx_ql_task_text_pre_desc_npc_%s", pre_desc_num ), string.format( "drx_ql_dialog_funcs.drx_ql_task_has_pre_desc_%s", pre_desc_num ) )
+
+			-- Actor pre-task description:
+			add_script_dialog( (index + 6), (index + 7), string.format( "drx_ql_dialog_funcs.drx_ql_task_text_pre_desc_actor_%s", pre_desc_num ) )
+
+		-- Increment the index:
+		index = (index + 7)
+
+	end
+
+				-- NPC explains honcho task:
+				add_script_dialog( index, (index + 1), "drx_ql_dialog_funcs.drx_ql_task_text_job_desc" )
+
+					-- Actor accepts honcho task:
+					add_dialog( (index + 1), (index + 2), "st_ordered_task_accept", nil, "drx_ql_dialog_funcs.drx_ql_give_task" )
+
+						-- NPC affirms acceptance:
+						add_dialog( (index + 2), (index + 3), drx_ql_dialog_funcs.drx_ql_random_phrase( "st_accepted_task" ) )
+
+							-- Actor thanks NPC:
+							add_dialog( (index + 3), (index + 4), "dm_universal_actor_exit_thanks" )
+
+					-- Actor refuses honcho task:
+					add_dialog( (index + 1), (index + 5), "dm_universal_actor_exit" )
+
+end
+
+-- \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
+
+-- ////////////////////////////////////////////////////////////////////////////////////////////////
+--
+-- drx_ql_mechanic_task_dialog_template function
+--
+-- ------------------------------------------------------------------------------------------------
+--
+--	Description:
+--		- Dialog on requesting a mechanic task
+--		- Modification of dm_init_dynamic_task_dialog (CoC 1.5b r4)
+--
+--	Usage:
+--		drx_ql_mechanic_task_dialog_template( )
+--
+--	Parameters:
+--		none
+--
+--	Ini requirements:
+--		drx\drx_ql_config.ltx
+--			[dialog_settings]
+--				max_pre_desc (type: int)
+--					- Max number of pre-task description dialogs
+--
+--	Return value (type: nil):
+--		none
+--
+-- ------------------------------------------------------------------------------------------------
+--	Created by DoctorX
+--	for DoctorX Questlines 2.0
+--	Last modified May 06, 2018
+-- ------------------------------------------------------------------------------------------------
+
+-- Dialog structure for requesting a mechanic task:
+function drx_ql_mechanic_task_dialog_template( dialog )
+
+	-- Location of the settings file:
+	local ini = ini_file( "drx\\drx_ql_config.ltx" )
+	if ( not ini ) then
+		printf( "DRX QL Error: Unable to generate mechanic task dialog, cannot locate ini file" )
+		return false
+	end
+
+	-- Update dialog manager:
+	saved_dialog = dialog
+
+	-- Actor requests mechanic task:
+	add_dialog( "", 0, "st_ordered_task_query", nil, "drx_ql_dialog_funcs.drx_ql_generate_mechanic_task" )
+
+	-- Pre-description dialogs:
+	local max_pre_desc_count = (ini:r_float_ex( "dialog_settings", "max_pre_desc" ) or 0)
+	local index = 0
+	for pre_desc_num = 1, ( max_pre_desc_count ) do
+
+		-- If no more pre-description text, NPC explains mechanic task:
+		add_script_dialog( index, (index + 1), "drx_ql_dialog_funcs.drx_ql_task_text_job_desc", string.format( "drx_ql_dialog_funcs.drx_ql_task_dont_has_pre_desc_%s", pre_desc_num ) )
+
+			-- Actor accepts mechanic task:
+			add_dialog( (index + 1), (index + 2), "st_ordered_task_accept", "dialogs.npc_has_task", "drx_ql_dialog_funcs.drx_ql_give_task" )
+
+				-- NPC affirms acceptance:
+				add_dialog( (index + 2), (index + 3), drx_ql_dialog_funcs.drx_ql_random_phrase( "st_accepted_task" ) )
+
+					-- Actor thanks NPC:
+					add_dialog( (index + 3), (index + 4), "dm_universal_actor_exit_thanks" )
+
+			-- Actor refuses mechanic task:
+			add_dialog( (index + 1), (index + 5), "dm_universal_actor_exit" )
+
+		-- NPC pre-task description:
+		add_script_dialog( index, (index + 6), string.format( "drx_ql_dialog_funcs.drx_ql_task_text_pre_desc_npc_%s", pre_desc_num ), string.format( "drx_ql_dialog_funcs.drx_ql_task_has_pre_desc_%s", pre_desc_num ) )
+
+			-- Actor pre-task description:
+			add_script_dialog( (index + 6), (index + 7), string.format( "drx_ql_dialog_funcs.drx_ql_task_text_pre_desc_actor_%s", pre_desc_num ) )
+
+		-- Increment the index:
+		index = (index + 7)
+
+	end
+
+				-- NPC explains mechanic task:
+				add_script_dialog( index, (index + 1), "drx_ql_dialog_funcs.drx_ql_task_text_job_desc" )
+
+					-- Actor accepts mechanic task:
+					add_dialog( (index + 1), (index + 2), "st_ordered_task_accept", nil, "drx_ql_dialog_funcs.drx_ql_give_task" )
+
+						-- NPC affirms acceptance:
+						add_dialog( (index + 2), (index + 3), drx_ql_dialog_funcs.drx_ql_random_phrase( "st_accepted_task" ) )
+
+							-- Actor thanks NPC:
+							add_dialog( (index + 3), (index + 4), "dm_universal_actor_exit_thanks" )
+
+					-- Actor refuses mechanic task:
+					add_dialog( (index + 1), (index + 5), "dm_universal_actor_exit" )
+
+end
+
+-- \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
+
+-- ////////////////////////////////////////////////////////////////////////////////////////////////
+--
+-- drx_ql_task_completed_dialog_template function
+--
+-- ------------------------------------------------------------------------------------------------
+--
+--	Description:
+--		- Dialog on turning in a honcho task
+--		- Modification of dm_init_dynamic_task_completed_dialog (CoC 1.5b r4)
+--
+--	Usage:
+--		drx_ql_task_completed_dialog_template( )
+--
+--	Parameters:
+--		none
+--
+--	Return value (type: nil):
+--		none
+--
+-- ------------------------------------------------------------------------------------------------
+--	Created by DoctorX
+--	for DoctorX Questlines 2.0
+--	Last modified October 20, 2017
+-- ------------------------------------------------------------------------------------------------
+
+-- Dialog structure for turning in a honcho task:
+function drx_ql_task_completed_dialog_template( dialog )
+
+	-- Update dialog manager:
+	saved_dialog = dialog
+
+	-- Actor returns to npc and states job is done:
+	add_dialog( "", 0, "st_ordered_task_query_finished" )
+
+		-- NPC replies:
+		add_script_dialog( 0, 1, "dialogs.text_npc_task_finish", nil, "dialogs.npc_set_finished_task_complete" )
+
+			-- Actor thanks NPC:
+			add_dialog( 1, 2, "dm_universal_actor_exit_thanks" )
+
+end
+
+-- \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
+
+-- ________________________________________________________________________________________________
+-- CHANGE FACTIONS DIALOG TEMPLATES-
+
+
+-- ////////////////////////////////////////////////////////////////////////////////////////////////
+--
+-- drx_ql_change_faction_dialog_template function
+--
+-- ------------------------------------------------------------------------------------------------
+--
+--	Description:
+--		- Dialog on requesting to change faction
+--
+--	Usage:
+--		drx_ql_change_faction_dialog_template( )
+--
+--	Parameters:
+--		none
+--
+--	Ini requirements:
+--		drx\drx_ql_config.ltx
+--			[dialog_settings]
+--				max_pre_desc (type: int)
+--					- Max number of pre-task description dialogs
+--
+--	Return value (type: nil):
+--		none
+--
+-- ------------------------------------------------------------------------------------------------
+--	Created by DoctorX
+--	for DoctorX Questlines 2.0
+--	Last modified May 06, 2018
+-- ------------------------------------------------------------------------------------------------
+
+-- Dialog structure for requesting to change factions:
+function drx_ql_change_faction_dialog_template( dialog )
+
+	-- Location of the settings file:
+	local ini = ini_file( "drx\\drx_ql_config.ltx" )
+	if ( not ini ) then
+		printf( "DRX QL Error: Unable to generate change factions task dialog, cannot locate ini file" )
+		return false
+	end
+
+	-- Update dialog manager:
+	saved_dialog = dialog
+
+	-- Actor requests to change factions:
+	add_dialog( "", 0, "drx_ql_str_change_factions_request", nil, "drx_ql_dialog_funcs.drx_ql_generate_cf_task" )
+
+	-- Pre-description dialogs:
+	local max_pre_desc_count = (ini:r_float_ex( "dialog_settings", "max_pre_desc" ) or 0)
+	local index = 0
+	for pre_desc_num = 1, ( max_pre_desc_count ) do
+
+		-- If no more pre-description text, NPC explains change factions task:
+		add_script_dialog( index, (index + 1), "drx_ql_dialog_funcs.drx_ql_task_text_job_desc", string.format( "drx_ql_dialog_funcs.drx_ql_task_dont_has_pre_desc_%s", pre_desc_num ) )
+
+			-- Actor accepts change factions task:
+			add_dialog( (index + 1), (index + 2), "drx_ql_str_accept_cf_task", "dialogs.npc_has_task", "drx_ql_dialog_funcs.drx_ql_give_task" )
+
+				-- NPC affirms acceptance:
+				add_dialog( (index + 2), (index + 3), "drx_ql_str_cf_task_accepted" )
+
+					-- Actor thanks NPC:
+					add_dialog( (index + 3), (index + 4), "drx_ql_str_cf_actor_exit" )
+
+			-- Actor refuses change factions task:
+			add_dialog( (index + 1), (index + 5), "dm_universal_actor_exit" )
+
+		-- NPC pre-task description:
+		add_script_dialog( index, (index + 6), string.format( "drx_ql_dialog_funcs.drx_ql_task_text_pre_desc_npc_%s", pre_desc_num ), string.format( "drx_ql_dialog_funcs.drx_ql_task_has_pre_desc_%s", pre_desc_num ) )
+
+			-- Actor pre-task description:
+			add_script_dialog( (index + 6), (index + 7), string.format( "drx_ql_dialog_funcs.drx_ql_task_text_pre_desc_actor_%s", pre_desc_num ) )
+
+		-- Increment the index:
+		index = (index + 7)
+
+	end
+
+				-- NPC explains change factions task:
+				add_script_dialog( index, (index + 1), "drx_ql_dialog_funcs.drx_ql_task_text_job_desc" )
+
+					-- Actor accepts change factions task:
+					add_dialog( (index + 1), (index + 2), "drx_ql_str_accept_cf_task", nil, "drx_ql_dialog_funcs.drx_ql_give_task" )
+
+						-- NPC affirms acceptance:
+						add_dialog( (index + 2), (index + 3), "drx_ql_str_cf_task_accepted" )
+
+							-- Actor thanks NPC:
+							add_dialog( (index + 3), (index + 4), "drx_ql_str_cf_actor_exit" )
+
+					-- Actor refuses change factions task:
+					add_dialog( (index + 1), (index + 5), "dm_universal_actor_exit" )
+
+end
+
+-- \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
+
+-- ////////////////////////////////////////////////////////////////////////////////////////////////
+--
+-- drx_ql_cf_task_completed_dialog_template function
+--
+-- ------------------------------------------------------------------------------------------------
+--
+--	Description:
+--		- Dialog on turning in a change faction task
+--		- Modification of dm_init_dynamic_task_completed_dialog (CoC 1.5b r4)
+--
+--	Usage:
+--		drx_ql_cf_task_completed_dialog_template( )
+--
+--	Parameters:
+--		none
+--
+--	Return value (type: nil):
+--		none
+--
+-- ------------------------------------------------------------------------------------------------
+--	Created by DoctorX
+--	for DoctorX Questlines 2.0
+--	Last modified October 04, 2017
+-- ------------------------------------------------------------------------------------------------
+
+-- Dialog structure for turning in a change factions task:
+function drx_ql_cf_task_completed_dialog_template( dialog )
+
+	-- Update dialog manager:
+	saved_dialog = dialog
+
+	-- Actor returns to npc and states job is done:
+	add_dialog( "", 0, "drx_ql_str_cf_task_completed" )
+
+		-- NPC replies:
+		add_script_dialog( 0, 1, "drx_ql_dialog_funcs.drx_ql_cf_task_finished_text", nil, "drx_ql_dialog_funcs.drx_ql_set_cf_task_complete" )
+
+			-- Actor thanks NPC:
+			add_dialog( 1, 2, "dm_universal_actor_exit_thanks" )
+
+end
+
+-- \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
+
+-- ////////////////////////////////////////////////////////////////////////////////////////////////
+--
+-- drx_ql_cf_task_cancel_dialog_template function
+--
+-- ------------------------------------------------------------------------------------------------
+--
+--	Description:
+--		- Dialog on requesting to cancel a change faction task
+--		- Modification of dm_init_dynamic_task_cancel_dialog (CoC 1.5b r4)
+--
+--	Usage:
+--		drx_ql_cf_task_cancel_dialog_template( )
+--
+--	Parameters:
+--		none
+--
+--	Return value (type: nil):
+--		none
+--
+-- ------------------------------------------------------------------------------------------------
+--	Created by DoctorX
+--	for DoctorX Questlines 2.0
+--	Last modified October 04, 2017
+-- ------------------------------------------------------------------------------------------------
+
+-- Dialog structure for cancelling a change factions task:
+function drx_ql_cf_task_cancel_dialog_template(dialog)
+
+	-- Update dialog manager:
+	saved_dialog = dialog
+
+	-- Actor announces desire to cancel change factions task:
+	add_dialog( "", 0, "drx_ql_str_cf_task_cancel" )
+
+		-- NPC requests confirmation:
+		add_dialog( 0, 1, "drx_ql_str_cf_task_cancel_question" )
+
+			-- Actor confirms cancellation:
+			add_dialog( 1, 2, "drx_ql_str_cf_task_cancel_confirm" )
+
+				-- NPC accepts cancellation:
+				add_script_dialog( 2, 3, "drx_ql_dialog_funcs.drx_ql_cf_task_cancel_text", nil, "drx_ql_dialog_funcs.drx_ql_cancel_cf_task" )
+
+			-- Actor rejects cancellation:
+			add_dialog( 1, 8, "dm_universal_actor_exit" )
+
+end
+
+-- \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
+
+-- ////////////////////////////////////////////////////////////////////////////////////////////////
+--
+-- drx_ql_sl_task_cancel_dialog_template function
+--
+-- ------------------------------------------------------------------------------------------------
+--
+--	Description:
+--		- Dialog on requesting to cancel a storyline task
+--		- Modification of dm_init_dynamic_task_cancel_dialog (CoC 1.5b r4)
+--
+--	Usage:
+--		drx_ql_sl_task_cancel_dialog_template( )
+--
+--	Parameters:
+--		none
+--
+--	Return value (type: nil):
+--		none
+--
+-- ------------------------------------------------------------------------------------------------
+--	Created by DoctorX
+--	for DoctorX Questlines 2.0
+--	Last modified November 17, 2017
+-- ------------------------------------------------------------------------------------------------
+
+-- Dialog structure for cancelling a storyline task:
+function drx_ql_sl_task_cancel_dialog_template(dialog)
+
+	-- Update dialog manager:
+	saved_dialog = dialog
+
+	-- Actor announces desire to cancel storyline task:
+	add_dialog( "", 0, "drx_ql_str_sl_task_cancel" )
+
+		-- NPC verifies task name to cancel:
+		add_script_dialog( 0, 1, "drx_ql_dialog_funcs.drx_ql_sl_task_cancel_text" )
+
+			-- Actor confirms desire to cancel task:
+			add_dialog( 1, 2, "st_task_default_excuse_cancel_job" )
+
+				-- NPC accepts cancellation:
+				add_dialog( 2, 3, drx_ql_dialog_funcs.drx_ql_random_phrase( "st_default_task_cancel" ), nil, "drx_ql_dialog_funcs.drx_ql_cancel_sl_task" )
+
+			-- Actor rejects cancellation:
+			add_dialog( 1, 8, "dm_universal_actor_exit" )
+
+end
+
+-- \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
+
+-- ////////////////////////////////////////////////////////////////////////////////////////////////
+--
+-- drx_ql_task_cancel_dialog_template function
+--
+-- ------------------------------------------------------------------------------------------------
+--
+--	Description:
+--		- Dialog on requesting to cancel a task
+--		- Modification of dm_init_dynamic_task_cancel_dialog (CoC 1.5b r4)
+--
+--	Usage:
+--		drx_ql_task_cancel_dialog_template( )
+--
+--	Parameters:
+--		none
+--
+--	Return value (type: nil):
+--		none
+--
+-- ------------------------------------------------------------------------------------------------
+--	Created by DoctorX
+--	for DoctorX Questlines 2.0
+--	Last modified October 07, 2017
+-- ------------------------------------------------------------------------------------------------
+
+-- Dialog structure for cancelling a task:
+function drx_ql_task_cancel_dialog_template( dialog )
+
+	-- Update dialog manager:
+	saved_dialog = dialog
+
+	-- Actor announces desire to cancel task:
+	add_dialog( "", 0, "st_ordered_task_query_cancel" )
+
+		-- NPC verifies task name to cancel:
+		add_script_dialog( 0, 1, "drx_ql_dialog_funcs.drx_ql_task_cancel_text" )
+
+			-- Actor confirms desire to cancel task:
+			add_script_dialog( 1, 2, "dialogs.text_actor_cancel_task", nil, "dialogs.npc_cancel_task" )
+
+				-- NPC accepts cancellation:
+				add_script_dialog( 2, 3, "dialogs.text_task_cancel" )
+
+			-- Actor rejects cancellation:
+			add_dialog( 1, 8, "dm_universal_actor_exit" )
+
+end
+
+-- \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
+
+-- ////////////////////////////////////////////////////////////////////////////////////////////////
+--
+-- drx_ql_hidden_target_dialog_template function
+--
+-- ------------------------------------------------------------------------------------------------
+--
+--	Description:
+--		- Dialog on inquiring an NPC about a hidden target
+--
+--	Usage:
+--		drx_ql_hidden_target_dialog_template( )
+--
+--	Parameters:
+--		none
+--
+--	Ini requirements:
+--		drx\drx_ql_config.ltx
+--			[dialog_settings]
+--				max_hidden_target (type: int)
+--					- Max number of hidden target dialogs
+--
+--	Return value (type: nil):
+--		none
+--
+-- ------------------------------------------------------------------------------------------------
+--	Created by DoctorX
+--	for DoctorX Questlines 2.0
+--	Last modified May 06, 2018
+-- ------------------------------------------------------------------------------------------------
+
+-- Dialog structure for hidden targets:
+function drx_ql_hidden_target_dialog_template( dialog )
+
+	-- Location of the settings file:
+	local ini = ini_file( "drx\\drx_ql_config.ltx" )
+	if ( not ini ) then
+		printf( "DRX QL Error: Unable to generate hidden target dialog, cannot locate ini file" )
+		return false
+	end
+
+	-- Update dialog manager:
+	saved_dialog = dialog
+
+	-- Actor asks NPC for information:
+	add_dialog( "", 0, "drx_ql_str_hidden_target_inquiry" )
+
+		-- NPC replies:
+		add_script_dialog( 0, 1, "drx_ql_dialog_funcs.drx_ql_ht_inquiry_reply_text" )
+
+	-- Hidden target dialogs:
+	local max_hidden_target = (ini:r_float_ex( "dialog_settings", "max_hidden_target" ) or 0)
+	local index = 1
+	for target_num = 1, ( max_hidden_target ) do
+
+			-- Actor asks about hidden target:
+			add_script_dialog( 1, (index + 1), string.format( "drx_ql_dialog_funcs.drx_ql_ht_inquiry_target_%s_text", target_num ), string.format( "drx_ql_dialog_funcs.drx_ql_ht_target_%s_exists", target_num ), "drx_ql_dialog_funcs.drx_ql_mark_ht_asked_time" )
+
+				-- NPC replies about hidden target:
+				add_script_dialog( (index + 1), (index + 2), string.format( "drx_ql_dialog_funcs.drx_ql_ht_reply_target_%s_text", target_num ) )
+
+					-- Actor thanks NPC:
+					add_dialog( (index + 2), (index + 3), "dm_universal_actor_exit_thanks" )
+
+		-- Increment the index:
+		index = (index + 3)
+
+	end
+
+			-- Actor decides not to ask about hidden targets:
+			add_dialog( 1, (index + 1), "dm_universal_actor_exit" )
+
+end
+
+-- \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
+
+-- ////////////////////////////////////////////////////////////////////////////////////////////////
+--
+-- drx_ql_hidden_assassin_dialog_template function
+--
+-- ------------------------------------------------------------------------------------------------
+--
+--	Description:
+--		- Dialog on inquiring an NPC about a hidden assassin
+--
+--	Usage:
+--		drx_ql_hidden_assassin_dialog_template( )
+--
+--	Parameters:
+--		none
+--
+--	Return value (type: nil):
+--		none
+--
+-- ------------------------------------------------------------------------------------------------
+--	Created by DoctorX
+--	for DoctorX Questlines 2.0
+--	Last modified February 17, 2019
+-- ------------------------------------------------------------------------------------------------
+
+-- Dialog structure for hidden assassin:
+function drx_ql_hidden_assassin_dialog_template( dialog )
+
+	-- Update dialog manager:
+	saved_dialog = dialog
+
+	-- Actor asks about hidden assassin:
+	add_dialog( "", 0, "drx_ql_str_hidden_assassin_inquiry", nil, "drx_ql_dialog_funcs.drx_ql_mark_ha_asked_time" )
+
+		-- NPC replies about hidden assassin:
+		add_script_dialog( 0, 1, "drx_ql_dialog_funcs.drx_ql_ha_reply_target_text" )
+
+			-- Actor thanks NPC:
+			add_dialog( 1, 2, "dm_universal_actor_exit_thanks" )
+
+end
+
+-- \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
+
+-- ////////////////////////////////////////////////////////////////////////////////////////////////
+--
+-- drx_ql_float_fetch_dialog_template function
+--
+-- ------------------------------------------------------------------------------------------------
+--
+--	Description:
+--		- Dialog on inquiring an NPC about an undiscovered float fetch task
+--
+--	Usage:
+--		drx_ql_float_fetch_dialog_template( )
+--
+--	Parameters:
+--		none
+--
+--	Ini requirements:
+--		drx\drx_ql_config.ltx
+--			[dialog_settings]
+--				max_float_fetch (type: int)
+--					- Max number of undiscovered float fetch dialogs
+--
+--	Return value (type: nil):
+--		none
+--
+-- ------------------------------------------------------------------------------------------------
+--	Created by DoctorX
+--	for DoctorX Questlines 2.0
+--	Last modified July 24, 2018
+-- ------------------------------------------------------------------------------------------------
+
+-- Dialog structure for hidden targets:
+function drx_ql_float_fetch_dialog_template( dialog )
+
+	-- Location of the settings file:
+	local ini = ini_file( "drx\\drx_ql_config.ltx" )
+	if ( not ini ) then
+		printf( "DRX QL Error: Unable to generate undiscovered float fetch dialog, cannot locate ini file" )
+		return false
+	end
+
+	-- Update dialog manager:
+	saved_dialog = dialog
+
+	-- Actor asks NPC for help:
+	add_dialog( "", 0, "drx_ql_str_float_fetch_inquiry", nil, "drx_ql_dialog_funcs.drx_ql_ff_determine_help" )
+
+		-- NPC replies with no help:
+		add_script_dialog( 0, 1, "drx_ql_dialog_funcs.drx_ql_ff_inquiry_reply_no_help_text", "drx_ql_dialog_funcs.drx_ql_ff_npc_not_is_helpful", "drx_ql_dialog_funcs.drx_ql_mark_ff_asked_time" )
+
+			-- Actor ends conversation:
+			add_dialog( 1, 2, "dm_universal_actor_exit" )
+
+		-- NPC replies with help:
+		add_script_dialog( 0, 3, "drx_ql_dialog_funcs.drx_ql_ff_inquiry_reply_helpful_text", "drx_ql_dialog_funcs.drx_ql_ff_npc_is_helpful", {"drx_ql_dialog_funcs.drx_ql_mark_ff_asked_time", "drx_ql_dialog_funcs.drx_ql_ff_determine_fee"} )
+
+	-- Float fetch target dialogs:
+	local max_float_fetch = (ini:r_float_ex( "dialog_settings", "max_float_fetch" ) or 0)
+	local index = 3
+	for float_task_number = 1, ( max_float_fetch ) do
+
+			-- Actor asks about undiscovered float fetch task:
+			add_script_dialog( 3, (index + 1), string.format( "drx_ql_dialog_funcs.drx_ql_ff_inquiry_task_%s_text", float_task_number ), string.format( "drx_ql_dialog_funcs.drx_ql_ff_task_%s_exists", float_task_number ) )
+
+				-- NPC agrees to help for a fee:
+				add_script_dialog( (index + 1), (index + 2), "drx_ql_dialog_funcs.drx_ql_ff_reply_fee_text" )
+
+					-- Actor doesn't have enough money:
+					add_dialog( (index + 2), (index + 3), drx_ql_dialog_funcs.drx_ql_random_phrase( "drx_ql_str_ff_no_money" ), "drx_ql_dialog_funcs.drx_ql_ff_actor_not_has_fee" )
+
+					-- Actor agrees to NPC fee:
+					add_dialog( (index + 2), (index + 4), drx_ql_dialog_funcs.drx_ql_random_phrase( "drx_ql_str_ff_agreed" ), "drx_ql_dialog_funcs.drx_ql_ff_actor_has_fee", string.format( "drx_ql_dialog_funcs.drx_ql_ff_give_help_%s", float_task_number ) )
+
+					-- Actor does not agree to NPC fee:
+					add_dialog( (index + 2), (index + 5), "dm_universal_actor_exit", "drx_ql_dialog_funcs.drx_ql_ff_actor_has_fee" )
+
+		-- Increment the index:
+		index = (index + 5)
+
+	end
+
+			-- Actor decides not to ask about undiscovered float fetch tasks:
+			add_dialog( 3, (index + 1), "dm_universal_actor_exit" )
+
+end
+
+-- \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
+
+-- ////////////////////////////////////////////////////////////////////////////////////////////////
+--
+-- drx_ql_rg_dialog_template function
+--
+-- ------------------------------------------------------------------------------------------------
+--
+--	Description:
+--		- River guide dialog
+--
+--	Usage:
+--		drx_ql_rg_dialog_template( )
+--
+--	Parameters:
+--		none
+--
+--	Return value (type: nil):
+--		none
+--
+-- ------------------------------------------------------------------------------------------------
+--	Created by DoctorX
+--	for DoctorX Questlines 2.0
+--	Last modified August 07, 2019
+-- ------------------------------------------------------------------------------------------------
+
+-- Dialog structure for river guide:
+function drx_ql_rg_dialog_template( dialog )
+
+	-- Update dialog manager:
+	saved_dialog = dialog
+
+	-- Actor asks NPC for transport:
+	add_dialog( "", 0, "drx_ql_str_rg_transport_dialog" )
+
+		-- NPC offers transport and names price:
+		add_script_dialog( 0, 1, "drx_ql_dialog_funcs.drx_ql_rg_offer_text" )
+
+			-- Actor doesn't have enough money:
+			add_dialog( 1, 2, "drx_ql_str_rg_broke_dialog", "drx_ql_dialog_funcs.drx_ql_rg_actor_not_has_fee" )
+
+			-- Actor agrees to NPC fee:
+			add_dialog( 1, 3, "drx_ql_str_rg_accept_dialog", "drx_ql_dialog_funcs.drx_ql_rg_actor_has_fee", "drx_ql_dialog_funcs.drx_ql_rg_transport_actor" )
+
+			-- Actor does not agree to NPC fee:
+			add_dialog( 1, 4, "dm_universal_actor_exit", "drx_ql_dialog_funcs.drx_ql_rg_actor_has_fee" )
+
+end
+
+-- \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
+
+-- ////////////////////////////////////////////////////////////////////////////////////////////////
+--
+-- drx_ql_news_dialog_template function
+--
+-- ------------------------------------------------------------------------------------------------
+--
+--	Description:
+--		- NPC general news dialog
+--		- Modification of init_new_dialog (CoC 1.5b r4)
+--
+--	Usage:
+--		drx_ql_news_dialog_template( )
+--
+--	Parameters:
+--		none
+--
+--	Return value (type: nil):
+--		none
+--
+-- ------------------------------------------------------------------------------------------------
+--	Created by DoctorX
+--	for DoctorX Questlines 2.0
+--	Last modified February 19, 2019
+-- ------------------------------------------------------------------------------------------------
+
+-- Dialog structure for NPC general news:
+function drx_ql_news_dialog_template( dialog )
+
+	-- Update dialog manager:
+	saved_dialog = dialog
+
+	-- Actor asks NPC for news:
+	add_dialog( "", 0, "dm_universal_actor_start" )
+
+		-- NPC gives news:
+		add_script_dialog( 0, 1, "drx_ql_dialog_funcs.drx_ql_news_text" )
+
+end
+
+-- \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
+
+-- ////////////////////////////////////////////////////////////////////////////////////////////////
+--
+-- drx_ql_first_meet_dialog_template function
+--
+-- ------------------------------------------------------------------------------------------------
+--
+--	Description:
+--		- Dialog on meeting a specific npc
+--
+--	Usage:
+--		drx_ql_first_meet_dialog_template( )
+--
+--	Parameters:
+--		none
+--
+--	Ini requirements:
+--		drx\drx_ql_config.ltx
+--			[dialog_settings]
+--				max_pre_desc (type: int)
+--					- Max number of pre-task description dialogs
+--
+--	Return value (type: nil):
+--		none
+--
+-- ------------------------------------------------------------------------------------------------
+--	Created by DoctorX
+--	for DoctorX Questlines 2.0
+--	Last modified March 01, 2019
+-- ------------------------------------------------------------------------------------------------
+
+-- Dialog structure for meeting a specific npc:
+function drx_ql_first_meet_dialog_template( dialog )
+
+	-- Location of the settings file:
+	local ini = ini_file( "drx\\drx_ql_config.ltx" )
+	if ( not ini ) then
+		printf( "DRX QL Error: Unable to generate first meet dialog, cannot locate ini file" )
+		return false
+	end
+
+	-- Update dialog manager:
+	saved_dialog = dialog
+
+	-- NPC greets actor:
+	add_script_dialog( "", 0, "drx_ql_dialog_funcs.drx_ql_first_meet_npc" )
+
+	-- Pre-description dialogs:
+	local max_pre_desc_count = (ini:r_float_ex( "dialog_settings", "max_pre_desc" ) or 0)
+	local index = 0
+	for pre_desc_num = 1, ( max_pre_desc_count ) do
+
+		-- If no more pre-description text, actor ends conversation:
+		add_script_dialog( index, (index + 1), "drx_ql_dialog_funcs.drx_ql_first_meet_actor", string.format( "drx_ql_dialog_funcs.drx_ql_first_meet_dont_has_pre_desc_%s", pre_desc_num ), "drx_ql_dialog_funcs.drx_ql_first_meet_end_dialog" )
+
+		-- Actor pre-description:
+		add_script_dialog( index, (index + 2), string.format( "drx_ql_dialog_funcs.drx_ql_first_meet_pre_actor_%s", pre_desc_num ), string.format( "drx_ql_dialog_funcs.drx_ql_first_meet_has_pre_desc_%s", pre_desc_num ) )
+
+			-- NPC pre-description:
+			add_script_dialog( (index + 2), (index + 3), string.format( "drx_ql_dialog_funcs.drx_ql_first_meet_pre_npc_%s", pre_desc_num ) )
+
+		-- Increment the index:
+		index = (index + 3)
+
+	end
+
+				-- Actor ends conversation:
+				add_script_dialog( index, (index + 1), "drx_ql_dialog_funcs.drx_ql_first_meet_actor", nil, "drx_ql_dialog_funcs.drx_ql_first_meet_end_dialog" )
+
+end
+
+-- \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
+
+function add_dialog(p_id,id,phrase_id,cond,act)
+	if not ( saved_dialog ) then
+		return
+	end
+
+	local phrase = saved_dialog:AddPhrase(phrase_id,tostring(id),tostring(p_id),-10000)
+	if not ( phrase ) then
+		return
+	end
+
+	--printf("phrase_id = %s",phrase_id)
+
+	local phrase_script = phrase:GetPhraseScript()
+	if ( cond ) then
+		if ( type(cond) == "table" ) then
+			for key, value in pairs(cond) do
+				if (alun_utils.findfunction(value,_G)) then
+					phrase_script:AddPrecondition(value)
+					--table.insert(cond_list,value)
+				else
+					printf("dialog_manager:Error: No such function exists '%s'",value)
+				end
+			end
+		else
+			if (alun_utils.findfunction(cond,_G)) then
+				phrase_script:AddPrecondition(cond)
+				--table.insert(cond_list,value)
+			else
+				printf("dialog_manager:Error: No such function exists '%s'",cond)
+			end
+		end
+	end
+
+	if ( act ) then
+		if ( type(act) == "table" ) then
+			for key, value in pairs(act) do
+				if (alun_utils.findfunction(value,_G)) then
+					phrase_script:AddAction(value)
+				else
+					printf("dialog_manager:Error: No such function exists '%s'",value)
+				end
+			end
+		else
+			if (alun_utils.findfunction(act,_G)) then
+				phrase_script:AddAction(act)
+			else
+				printf("dialog_manager:Error: No such function exists '%s'",act)
+			end
+		end
+	end
+	return phrase_script
+end
+
+function add_script_dialog(p_id,id,phrase_id,cond,act)
+	local d = add_dialog(p_id,id,phrase_id,cond,act)
+	if (d) then
+		d:SetScriptText(phrase_id)
+	end
+end
+
+-----------------------------------------------------
+-- Dynamic Ashot and Yar Dialog
+-----------------------------------------------------
+function dm_ashot_and_yar(a,b)
+	local npc = dialogs.who_is_npc(a,b)
+
+end
+-----------------------------------------------------
+-- Dynamic task Dialog
+-----------------------------------------------------
+function dm_init_dynamic_task_dialog(dialog)
+	saved_dialog = dialog
+
+	-- loop is necessary to allow skipping of unwanted tasks
+	local base_id = 0
+
+	-- ASK FOR AVAILABLE TASKS
+	add_dialog("",base_id,"st_ordered_task_query",nil,"dialogs.generate_available_tasks")																							-- ACTOR
+
+	for i=1,10 do
+		add_script_dialog(base_id,base_id+1,"dialogs.text_npc_has_task")																											-- NPC     <---|
+			add_dialog(base_id+1,base_id+2,"st_ordered_task_accept","dialogs.npc_has_task","dialogs.npc_give_task")																	-- ACTOR       |
+				add_dialog(base_id+2,base_id+3,"st_accepted_task_"..math.random(1,3))																								-- NPC         |
+					add_dialog(base_id+3,base_id+4,"dm_universal_actor_exit_thanks")																								-- ACTOR       |
+					                                                                                                                                                                --             |
+			add_dialog(base_id+1,base_id+10,"st_ordered_task_next","dialogs.npc_has_task","dialogs.npc_skip_task")																	-- ACTOR   --->|
+			add_dialog(base_id+1,base_id+8,"dm_universal_actor_exit") 																												-- ACTOR
+		base_id = base_id + 10
+	end
+end
+
+function dm_init_sim_dynamic_task_dialog(dialog)
+	saved_dialog = dialog
+
+	-- loop is necessary to allow skipping of unwanted tasks
+	local base_id = 0
+
+	-- ASK FOR AVAILABLE TASKS
+	add_dialog("",base_id,"st_ordered_task_query",nil,"dialogs.sim_generate_available_tasks")																						-- ACTOR
+
+	for i=1,10 do
+		add_script_dialog(base_id,base_id+1,"dialogs.text_npc_has_task")																											-- NPC     <---|
+			add_dialog(base_id+1,base_id+2,"st_ordered_task_accept","dialogs.npc_has_task","dialogs.npc_give_task")																	-- ACTOR       |
+				add_dialog(base_id+2,base_id+3,"st_accepted_task_"..math.random(1,3))																								-- NPC         |
+					add_dialog(base_id+3,base_id+4,"dm_universal_actor_exit_thanks")																								-- ACTOR       |
+					                                                                                                                                                                --             |
+			add_dialog(base_id+1,base_id+10,"st_ordered_task_next","dialogs.npc_has_task","dialogs.npc_skip_task")																	-- ACTOR   --->|
+			add_dialog(base_id+1,base_id+8,"dm_universal_actor_exit") 																												-- ACTOR
+		base_id = base_id + 10
+	end
+end
+
+function dm_init_dynamic_task_completed_dialog(dialog)
+	saved_dialog = dialog
+	local base_id = 0
+
+	-- TASK FINISHED TURN-IN
+	add_dialog("",base_id,"st_ordered_task_query_finished","dialogs.actor_has_finished_task")												-- ACTOR
+		add_script_dialog(base_id,base_id+1,"dialogs.text_npc_task_finish",nil,"dialogs.npc_set_finished_task_complete")					-- NPC
+			add_dialog(base_id+1,base_id+2,"dm_universal_actor_exit_thanks")																-- ACTOR
+end
+
+function dm_init_sim_dynamic_task_completed_dialog(dialog)
+	saved_dialog = dialog
+	local base_id = 0
+
+	-- TASK FINISHED TURN-IN
+	add_dialog("",base_id,"st_ordered_task_query_finished","dialogs.sim_actor_has_finished_task")											-- ACTOR
+		add_script_dialog(base_id,base_id+1,"dialogs.text_npc_task_finish",nil,"dialogs.npc_set_finished_task_complete")					-- NPC
+			add_dialog(base_id+1,base_id+2,"dm_universal_actor_exit_thanks")																-- ACTOR
+end
+
+function dm_init_dynamic_task_cancel_dialog(dialog)
+	saved_dialog = dialog
+	local base_id = 0
+
+	-- CANCEL TASKS
+	add_dialog("",base_id,"st_ordered_task_query_cancel","dialogs.actor_has_ongoing_task")																							-- ACTOR
+
+	for i=1,10 do
+		add_script_dialog(base_id,base_id+1,"dialogs.text_npc_has_cancel_task")																										-- NPC     <---|
+			add_script_dialog(base_id+1,base_id+2,"dialogs.text_actor_cancel_task","dialogs.npc_has_cancel_task","dialogs.npc_cancel_task")											-- ACTOR       |
+				add_script_dialog(base_id+2,base_id+3,"dialogs.text_task_cancel")																									-- NPC         |
+					add_dialog(base_id+3,base_id+4,"dm_universal_actor_exit_sorry")																									-- ACTOR       |
+					                                                                                                                                                                --             |
+			add_dialog(base_id+1,base_id+10,"st_ordered_task_query_cancel_next_job","dialogs.npc_has_cancel_task","dialogs.npc_skip_cancel_task")									-- ACTOR   --->|
+			add_dialog(base_id+1,base_id+8,"dm_universal_actor_exit") 																												-- ACTOR
+		base_id = base_id + 10
+	end
+end
+
+function dm_init_sim_dynamic_task_cancel_dialog(dialog)
+	saved_dialog = dialog
+	local base_id = 0
+
+	-- CANCEL TASKS
+	add_dialog("",base_id,"st_ordered_task_query_cancel","dialogs.sim_actor_has_ongoing_task")																						-- ACTOR
+
+	for i=1,10 do
+		add_script_dialog(base_id,base_id+1,"dialogs.text_npc_has_cancel_task")																										-- NPC     <---|
+			add_script_dialog(base_id+1,base_id+2,"dialogs.text_actor_cancel_task","dialogs.npc_has_cancel_task","dialogs.npc_cancel_task")											-- ACTOR       |
+				add_script_dialog(base_id+2,base_id+3,"dialogs.text_task_cancel")																									-- NPC         |
+					add_dialog(base_id+3,base_id+4,"dm_universal_actor_exit_sorry")																									-- ACTOR       |
+					                                                                                                                                                                --             |
+			add_dialog(base_id+1,base_id+10,"st_ordered_task_query_cancel_next_job","dialogs.npc_has_cancel_task","dialogs.npc_skip_cancel_task")									-- ACTOR   --->|
+			add_dialog(base_id+1,base_id+8,"dm_universal_actor_exit") 																												-- ACTOR
+		base_id = base_id + 10
+	end
+end
+
+-----------------------------------------------------
+-- Dynamic Broker Dialog
+-----------------------------------------------------
+function dm_init_dynamic_broker_dialog(dialog)
+	saved_dialog = dialog
+
+	add_dialog("",0,"st_broker_query") 																		-- Actor
+		add_dialog(0,1,"st_broker_npc_start_"..math.random(1,3)) 											-- NPC
+			add_script_dialog(1,2,"dialogs.text_actor_has_valuable_item","dialogs.condition_actor_has_valuable_item") -- Actor
+				add_dialog(2,3,"st_broker_npc_answer_pda_query") 											-- NPC
+					add_dialog(3,4,"st_broker_give_pda") 													-- Actor
+						add_script_dialog(4,5,"dialogs.text_trade_npc_pda") 								-- NPC
+
+
+							-- /////////////////////////////////////////////////////////////////////////////////////////
+							--
+							-- Removed Redundant PDA Dialog Lines
+							--
+							--	Modified by DoctorX
+							--	for DoctorX Questlines 2.0
+							--	September 18, 2017
+							--
+							-- -----------------------------------------------------------------------------------------
+
+							-- add_dialog(5,0,"st_broker_query_more")											-- Actor
+							-- add_dialog(5,1111,"dm_universal_actor_exit_thanks")								-- Actor
+
+							-- \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
+
+			add_dialog(1,1111,"dm_universal_actor_exit") 													-- Actor
+end
+
+-----------------------------------------------------
+-- Dynamic Yar and Ashot Dialog
+-----------------------------------------------------
+function dm_init_dynamic_ashot_and_yar_dialog(dialog)
+	saved_dialog = dialog
+
+	add_dialog("",0,"jup_b19_freedom_yar_task_1_dm_query")
+
+	local script = add_dialog(0,1,"should not see this")
+	script:SetScriptText("dialogs_jupiter.dm_ashot_and_yar_generate_dialog")
+end
+
+-----------------------------------------------------
+-- Dynamic Repair Dialog
+-----------------------------------------------------
+function dm_init_dynamic_repair_dialog(dialog)
+	saved_dialog = dialog
+
+	add_dialog("",0,"st_mechanic_query_items")
+
+	local script = add_dialog(0,1,"st_mechanic_repair_not_done","inventory_upgrades.dont_has_repaired_items")
+	script:SetScriptText("inventory_upgrades.dm_repair_not_done")
+	add_dialog(0,2,"st_mechanic_repair_done","inventory_upgrades.has_repaired_items","inventory_upgrades.give_repaired_items")
+end
+
+
+-----------------------------------------------------
+-- Dynamic Surrender Dialog
+-----------------------------------------------------
+function dm_init_surrender_dialog(dialog)
+	saved_dialog = dialog
+
+	add_dialog("",0,"st_surrender_victim")
+
+
+	-- ///////////////////////////////////////////////////////////////////////////////////////////////
+	--
+	-- Clarified Surrender Dialog
+	--
+	--	Modified by DoctorX
+	--	for DoctorX Questlines 2.0
+	--	March 24, 2019
+	--
+	-- -----------------------------------------------------------------------------------------------
+
+-- 	add_dialog(0,1,"st_surrender_query_victim_4","dialogs.victim_is_bounty")
+-- 		add_script_dialog(1,9,"dialogs.surrender_victim_answers_bounty")
+-- 			add_dialog(9,20,"st_surrender_actor_2",nil,{"dialogs.set_victim_surrendered","dialogs.break_dialog"})
+-- 			add_dialog(9,21,"st_surrender_actor_3",nil,{"dialogs.set_victim_surrendered","dialogs.break_dialog"})
+--
+-- 	add_dialog(0,2,"st_surrender_query_victim_1")
+-- 		add_script_dialog(2,10,"dialogs.surrender_victim_answers_1")
+-- 			add_dialog(10,20,"st_surrender_actor_2",nil,{"dialogs.set_victim_surrendered","dialogs.break_dialog"})
+-- 			add_dialog(10,21,"st_surrender_actor_3",nil,{"dialogs.set_victim_surrendered","dialogs.break_dialog"})
+--
+-- 	add_dialog(0,3,"st_surrender_query_victim_2")
+-- 		add_script_dialog(3,11,"dialogs.surrender_victim_answers_1")
+-- 			add_dialog(11,20,"st_surrender_actor_2",nil,{"dialogs.set_victim_surrendered","dialogs.break_dialog"})
+-- 			add_dialog(11,21,"st_surrender_actor_3",nil,{"dialogs.set_victim_surrendered","dialogs.break_dialog"})
+--
+-- 	add_dialog(0,4,"st_surrender_query_victim_3")
+-- 		add_script_dialog(4,12,"dialogs.surrender_victim_answers_2")
+-- 			add_dialog(12,20,"st_surrender_actor_1",nil,{"dialogs.set_victim_surrendered","dialogs.break_dialog"})
+
+	-- Actor takes NPC weapons:
+	add_dialog( 0, 1, "drx_ql_str_surrender_actor_demand" )
+
+		-- NPC pleads for mercy:
+		add_script_dialog( 1, 2, "drx_ql_dialog_funcs.drx_ql_surrender_victim_text" )
+
+			-- Actor heals NPC:
+			add_dialog( 2, 3, "drx_ql_str_surrender_actor_nice", nil, {"drx_ql_dialog_funcs.drx_ql_surrender_give_medkit", "dialogs.set_victim_surrendered", "dialogs.break_dialog"} )
+
+			-- Actor leaves NPC to die:
+			add_dialog( 2, 4, "drx_ql_str_surrender_actor_mean", nil, {"dialogs.set_victim_surrendered", "dialogs.break_dialog"} )
+
+	-- \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
+
+end
+
+
+-- End Alundaio
+-----------------------------------------------------------------------------
+
+-- Generate id for phrase
+function get_id()
+	id_counter = id_counter + 1
+	return id_counter
+end
+
+-- Parse ini file and store all phrases and their parameters into phrase table
+function fill_phrase_table()
+	local cfg = ini_file_ex("misc\\dialog_manager.ltx")
+	local function itr(section)
+		local val = cfg:r_value(section,"category") or "default"
+		local category = (val == "hello" or val == "anomalies" or val == "place" or val == "job" or val == "information" or val == "tips") and val or "default"
+		if (category ~= "default") then
+			local temp_table = {}
+			temp_table.info = {}
+			temp_table.id = tostring(get_id())
+			temp_table.name = section
+
+			local temp = cfg:r_value(section,"npc_community")
+			temp_table.npc_community = temp and parse_names(temp) or "not_set"
+
+			temp = cfg:r_value(section,"actor_community")
+			temp_table.actor_community = temp and parse_names(temp) or "not_set"
+
+			temp = cfg:r_value(section,"level")
+			temp_table.level = temp and parse_names(temp) or "not_set"
+
+			temp_table.once = tostring(cfg:r_value(section,"once",1)) or "always"
+			temp_table.wounded = tostring(cfg:r_value(section,"wounded",1)) or "false"
+
+			temp = cfg:r_value(section,"info")
+			if (temp and temp ~= "") then
+				xr_logic.parse_infop1(temp_table.info, temp)
+			end
+
+			temp_table.smart = cfg:r_value(section,"smart") or ""
+
+			phrase_table[category][temp_table.id] = temp_table
+		end
+	end
+
+	cfg.ini:section_for_each(itr)
+end
+
+-- Initialize npc start dialog
+function init_start_dialogs(dialog, str)
+	saved_dialog = dialog
+	--cond_list = empty_table(cond_list)
+
+	add_dialog("",0,"")
+	add_dialog(0,1,"",nil,"dialog_manager.fill_priority_"..str.."_table")
+
+	local ph
+	local p,d
+	local script
+	for k,v in pairs(phrase_table[str]) do
+		if (v.wounded == "true") then
+			script = add_dialog(1,v.id,v.name,{"dialogs.is_wounded","dialog_manager.precondition_"..str.."_dialogs"},"dialog_manager.action_"..str.."_dialogs")
+			if (script) then
+				ph = true
+				add_dialog(v.id,get_id(),"dm_wounded_medkit",{"dialogs.actor_have_medkit"},{"dialogs.transfer_medkit","dialogs.break_dialog"})
+				add_dialog(v.id,get_id(),"dm_wounded_sorry",nil,"dialogs.break_dialog")
+			end
+		else
+			add_dialog(1,v.id,v.name,{"dialogs.is_not_wounded","dialog_manager.precondition_"..str.."_dialogs"},"dialog_manager.action_"..str.."_dialogs")
+			ph = true
+		end
+	end
+
+	if not(ph) then
+		add_dialog(1,2,"dm_"..str.."_general")
+	end
+end
+
+-- Initialize new actor dialog
+function init_new_dialog(dialog)
+	local actor_table = { "job", "anomalies", "information", "tips" }
+
+	saved_dialog = dialog
+	add_dialog("",0,"dm_universal_actor_start")
+	add_dialog(0,1,"dm_universal_npc_start_"..math.random(1,4))
+
+	local ph,id,str
+
+	for i = 1,4 do
+		local id = get_id()
+		str = actor_table[i]
+
+		add_dialog(1,id,"dm_"..str.."_general_"..math.random(1,3),nil,"dialog_manager.fill_priority_"..str.."_table")
+			local id2 = get_id()
+			add_dialog(id,id2,"dm_no_more_"..math.random(1,10),"dialog_manager.precondition_"..str.."_dialogs_no_more")
+			add_dialog(id,id2,"dm_do_not_know_"..math.random(1,10),"dialog_manager.precondition_"..str.."_dialogs_do_not_know")
+
+		for k,v in pairs(phrase_table[str]) do
+			ph = true
+			add_dialog(id,v.id,v.name,"dialog_manager.precondition_"..str.."_dialogs","dialog_manager.action_"..str.."_dialogs")
+		end
+
+		if not (ph) then
+			add_dialog(id,id2,"dm_"..str.."_do_not_know_"..math.random(1,3))
+		end
+	end
+	add_dialog(1,get_id(),"dm_universal_actor_exit")
+end
+
+-- Fill selected priority table
+function fill_priority_table(npc, PT_subtable, PRT_subtable)
+	local npc_id = npc:id()
+	if(PRT_subtable[npc_id]==nil) then
+		PRT_subtable[npc_id] = {}
+	end
+
+	for num, phrase in pairs(PT_subtable) do
+		if (phrase) then
+			calculate_priority(PRT_subtable, phrase, npc, phrase.id)
+		end
+	end
+end
+
+function is_told(npc, str)
+	local id = npc:id()
+	if (priority_table[str] == nil or priority_table[str][id] == nil) then
+		return true
+	end
+	if priority_table[str][id].told == true then
+		return true
+	end
+	return false
+end
+-- Calculate precondition for default phrase in information dialog
+function precondition_no_more(npc, str, phrase_id)
+	local id = npc:id()
+	if (priority_table[str] == nil or priority_table[str][id] == nil) then
+		return true
+	end
+
+	local pr, id = get_highest_priority_phrase(phrase_table[str], priority_table[str], npc, phrase_id)
+	if(pr<0) or (id==0) then
+		printf("there is no avaliable "..str.." dialogs")
+		return true
+	end
+
+	if (PRT_subtable[id][phrase_id] == nil or PRT_subtable[id][phrase_id] == -1) then
+		return true
+	end
+
+	return false
+end
+
+-- Calculate phrase's preconditions
+function precondition(npc, PT_subtable, PRT_subtable, phrase_id,dialog_name)
+	if not (phrase_id) then
+		printf("dialog_manager: no pharse_id for dialog %s",dialog_name)
+	end
+
+	if not (PRT_subtable[npc:id()]) then
+		--printf("dialog_manager:Error:No PRT_subtable for %s with phrase_id=%s and dialog_name=%s",npc:name(),phrase_id,dialog_name)
+		reset_phrase_priority(PT_subtable, PRT_subtable, npc, phrase_id)
+		return false
+	end
+
+	if PRT_subtable[npc:id()] and PRT_subtable[npc:id()].told and PRT_subtable[npc:id()].told == true then
+		return false
+	end
+-- recalculate current phrase priority
+	local priority = calculate_priority(PRT_subtable, PT_subtable[phrase_id], npc, phrase_id)
+-- if current phrase is with highest priority - show it
+	return is_highest_priority_phrase(PT_subtable, PRT_subtable, npc, phrase_id)
+end
+
+-- Calculate phrase priority
+function calculate_priority(PRT_subtable, PTID_subtable, npc, phrase_id)
+	if not (PTID_subtable) then
+		return
+	end
+
+	local f_level = false
+	local f_comm = false
+	local priority = -1
+	local npc_id = npc:id()
+
+	if(PTID_subtable.npc_community=="not_set") then
+		f_comm = true
+	elseif(PTID_subtable.npc_community[1]=="all") then
+		priority = priority + 1
+		f_comm = true
+	else
+		for i=1,#PTID_subtable.npc_community do
+			if(PTID_subtable.npc_community[i]==character_community(npc)) then
+				priority = priority + 2
+				f_comm = true
+				break
+			end
+		end
+		priority = priority - 1
+	end
+
+	if(PTID_subtable.level=="not_set") then
+		f_level = true
+	elseif(PTID_subtable.level[1]=="all") then
+		priority = priority + 1
+		f_level = true
+	else
+		for i=1,#PTID_subtable.level do
+			if(PTID_subtable.level[i]==level.name()) then
+				priority = priority + 2
+				f_level = true
+				break
+			end
+		end
+	end
+
+	if(PTID_subtable.actor_community=="not_set") then
+		priority = priority + 0
+	elseif(PTID_subtable.actor_community=="all") then
+		priority = priority + 1
+	else
+		for i=1,#PTID_subtable.actor_community do
+			if(PTID_subtable.actor_community[i]==character_community(db.actor)) then
+					priority = priority + 2
+				break
+			end
+		end
+	end
+
+	if(PTID_subtable.wounded=="true") then
+		if not(xr_wounded.is_wounded(npc)) then
+			priority = -1
+		else
+			priority = priority + 1
+		end
+	else
+		if(xr_wounded.is_wounded(npc)) then
+			priority = -1
+		else
+			priority = priority + 1
+		end
+	end
+
+	if f_comm == false or f_level == false then
+		priority = -1
+	end
+
+	if(PRT_subtable[npc_id].ignore_once) then
+		if(PTID_subtable.once=="true") then
+			priority = -1
+		end
+	end
+
+	if(PRT_subtable[npc_id][phrase_id]~=nil) and (PRT_subtable[npc_id][phrase_id]==255) then
+-- if there was set the highest priority for phrase
+		priority = 255
+	end
+
+	for k,v in pairs(PTID_subtable.info) do
+		if v.name then
+			if v.required == true then
+				if not has_alife_info(v.name) then
+					priority = -1
+					break
+				end
+			else
+				if has_alife_info(v.name) then
+					priority = -1
+					break
+				end
+			end
+		end
+	end
+
+
+	PRT_subtable[npc_id][phrase_id] = priority
+	return priority
+end
+
+-- Set phrase end action
+function told(PRT_subtable, npc)
+	PRT_subtable[npc:id()].told = true
+end
+
+function action(PT_subtable, PRT_subtable, cur_phrase_id, npc)
+	if not(PRT_subtable[npc:id()].ignore_once) then
+		if(PT_subtable[cur_phrase_id].once=="true") then
+			set_phrase_highest_priority(PT_subtable,PRT_subtable, npc, cur_phrase_id)
+		end
+		PRT_subtable[npc:id()].ignore_once = true
+	end
+end
+
+-- Set the highest priority to selected phrase
+function set_phrase_highest_priority(PT_subtable, PRT_subtable, npc, phrase_id)
+	local npc_id = npc:id()
+	if(PRT_subtable[npc_id]~=nil) then
+		PRT_subtable[npc_id][phrase_id] = 255
+	else
+		PRT_subtable[npc_id] = {}
+		PRT_subtable[npc_id][phrase_id] = 255
+	end
+end
+
+-- Reset phrase priority
+function reset_phrase_priority(PT_subtable, PRT_subtable, npc, phrase_id)
+	if not (phrase_id) then
+		return
+	end
+
+	local npc_id = npc:id()
+	if(PRT_subtable[npc_id]) then
+		PRT_subtable[npc_id][phrase_id] = -1
+	else
+		PRT_subtable[npc_id] = {}
+		PRT_subtable[npc_id][phrase_id] = calculate_priority(PRT_subtable, PT_subtable[phrase_id], npc, phrase_id)
+	end
+end
+
+-- Is the phrase priority the highest?
+function is_highest_priority_phrase(PT_subtable, PRT_subtable, npc, phrase_id)
+	local npc_id = npc:id()
+	if(PRT_subtable[npc_id]~=nil) then
+-- if there is a subtable for this npc
+		local id = phrase_id
+		local pr = PRT_subtable[npc_id][phrase_id]
+		if pr == nil or pr < 0 then
+			return false
+		end
+		for phr_id, priority in pairs(PRT_subtable[npc_id]) do
+-- iterate through array to get if selected phrase is with the highest priority
+			if(phr_id~="ignore_once" and phr_id~="told") then
+				if(priority>pr) then
+					return false
+				end
+			end
+		end
+		return true
+	else
+		-- if there is no subtable for this npc - create it
+		reset_phrase_priority(PT_subtable, PRT_subtable, npc, phrase_id)
+		return false
+	end
+end
+
+-- Get the phrase with the highest priority
+function get_highest_priority_phrase(PT_subtable, PRT_subtable, npc, phrase_id)
+	local npc_id = npc:id()
+	if(PRT_subtable[npc_id]) then
+		-- if there is a subtable for this npc
+		local id = 0
+		local pr = -1
+		for phr_id, priority in pairs(PRT_subtable[npc_id]) do
+			-- iterate through array for the highest priority phrase
+			if(phr_id~="ignore_once" and phr_id~="told") then
+				if(priority>pr) then
+					pr = priority
+					id = phr_id
+				end
+			end
+		end
+		return pr, id
+	else
+		-- if there is no subtable for this npc - create it
+		reset_phrase_priority(PT_subtable, PRT_subtable, npc, phrase_id)
+		return -1, 0
+	end
+end
+--------------------------------------------------------------------------------
+-- Initializing, filling priority tables, setting preconditions and actions
+--------------------------------------------------------------------------------
+-- Initialize npc hello start dialog
+function init_hello_dialogs(dialog)
+	init_start_dialogs(dialog, "hello")
+end
+
+-- Fill phrase priority table for hello start dialog
+function fill_priority_hello_table(actor, npc, dialog_name, phrase_id)
+	fill_priority_table(npc, phrase_table.hello, priority_table.hello)
+end
+
+-- Fill phrase priority table for new dialog
+function fill_priority_job_table(actor, npc, dialog_name, phrase_id)
+	fill_priority_table(npc, phrase_table.job, priority_table.job)
+end
+function fill_priority_anomalies_table(actor, npc, dialog_name, phrase_id)
+	fill_priority_table(npc, phrase_table.anomalies, priority_table.anomalies)
+end
+--function fill_priority_place_table(actor, npc, dialog_name, phrase_id)
+--	fill_priority_table(npc, phrase_table.place, priority_table.place)
+--end
+function fill_priority_information_table(actor, npc, dialog_name, phrase_id)
+	fill_priority_table(npc, phrase_table.information, priority_table.information)
+end
+
+function fill_priority_tips_table(actor, npc, dialog_name, phrase_id)
+	fill_priority_table(npc, phrase_table.tips, priority_table.tips)
+end
+
+-- Calculate precondition for phrases in hello start dialog
+function precondition_hello_dialogs(npc, actor, dialog_name, parent_id, id)
+	--printf("hello")
+	return precondition(npc, phrase_table.hello, priority_table.hello, id,dialog_name)
+end
+-- Set phrase end action for hello start dialog
+function action_hello_dialogs(npc, actor, dialog_name, id)
+	action(phrase_table.hello, priority_table.hello, id, npc)
+end
+
+-- Calculate precondition for default phrase in occupation dialog
+function precondition_job_dialogs_no_more(npc, actor, dialog_name, parent_id, id)
+	if is_told(npc, "job") == true then
+		return true
+	end
+	return false
+end
+
+function precondition_job_dialogs_do_not_know(npc, actor, dialog_name, parent_id, id)
+	return precondition_no_more(npc, "job", id)
+end
+
+-- Calculate preconditions for phrases in occupation dialog
+function precondition_job_dialogs(npc, actor, dialog_name, parent_id, id)
+	--printf("job")
+	return precondition(npc, phrase_table.job, priority_table.job, id,dialog_name)
+end
+-- Set phrase end action for occupation dialog
+function action_job_dialogs(npc, actor, dialog_name, id)
+	action(phrase_table.job, priority_table.job, id, npc)
+	told(priority_table.job, npc)
+end
+
+-- Calculate precondition for default phrase in anomalies dialog
+function precondition_anomalies_dialogs_no_more(npc, actor, dialog_name, parent_id, id)
+	if is_told(npc, "anomalies") == true then
+		return true
+	end
+	return false
+end
+
+function precondition_anomalies_dialogs_do_not_know(npc, actor, dialog_name, parent_id, id)
+	return precondition_no_more(npc, "anomalies", id)
+end
+-- Calculate preconditions for phrases in anomalies dialog
+function precondition_anomalies_dialogs(npc, actor, dialog_name, parent_id, id)
+	local smart = xr_gulag.get_npc_smart(npc)
+	if priority_table.anomalies and priority_table.anomalies[npc:id()] and smart ~= nil and tostring(smart:name()) == phrase_table.anomalies[id].smart then
+		priority_table.anomalies[npc:id()][id] = -1
+		return false
+	end
+	--printf("anomalies")
+	return precondition(npc, phrase_table.anomalies, priority_table.anomalies, id,dialog_name)
+end
+-- Set phrase end action for information dialog
+function action_anomalies_dialogs(npc, actor, dialog_name, id)
+	action(phrase_table.anomalies, priority_table.anomalies, id, npc)
+	told(priority_table.anomalies, npc)
+end
+
+-- Calculate precondition for default phrase in information dialog
+function precondition_information_dialogs_no_more(npc, actor, dialog_name, parent_id, id)
+	if is_told(npc, "information") == true then
+		return true
+	end
+	return false
+end
+
+function precondition_information_dialogs_do_not_know(npc, actor, dialog_name, parent_id, id)
+	return precondition_no_more(npc, "information", id)
+end
+-- Calculate preconditions for phrases in information dialog
+function precondition_information_dialogs(npc, actor, dialog_name, parent_id, id)
+	--printf("info")
+	return precondition(npc, phrase_table.information, priority_table.information, id,dialog_name)
+end
+-- Set phrase end action for information dialog
+function action_information_dialogs(npc, actor, dialog_name, id)
+	action(phrase_table.information, priority_table.information, id, npc)
+	told(priority_table.information, npc)
+end
+
+-- Tips
+-- Calculate precondition for default phrase in information dialog
+function precondition_tips_dialogs_no_more(npc, actor, dialog_name, parent_id, id)
+	if is_told(npc, "tips") == true then
+		return true
+	end
+	return false
+end
+
+function precondition_tips_dialogs_do_not_know(npc, actor, dialog_name, parent_id, id)
+	return precondition_no_more(npc, "tips", id)
+end
+-- Calculate preconditions for phrases in tips dialog
+function precondition_tips_dialogs(npc, actor, dialog_name, parent_id, id)
+	--printf("tips")
+	return precondition(npc, phrase_table.tips, priority_table.tips, id,dialog_name)
+end
+-- Set phrase end action for tips dialog
+function action_tips_dialogs(npc, actor, dialog_name, id)
+	action(phrase_table.tips, priority_table.tips, id, npc)
+	told(priority_table.tips, npc)
+end
+
+local rnd = 0
+
+function precondition_is_phrase_disabled(fs,ss,dn,ppi,pi)
+	local npc = dialogs.who_is_npc(fs, ss)
+	if(pi=="") then
+		pi = dn
+	end
+	if (disabled_phrases[npc:id()] and disabled_phrases[npc:id()][pi]) or
+		 (quest_disabled_phrases[npc:id()] and quest_disabled_phrases[npc:id()][pi]) then
+		return false
+	else
+		return true
+	end
+end
+
+function action_disable_phrase(fs,ss,dn,pi)
+	local npc = dialogs.who_is_npc(fs, ss)
+	if(pi=="0") then
+		pi = dn
+	end
+	if(disabled_phrases[npc:id()]==nil) then
+		disabled_phrases[npc:id()] = {}
+	end
+	disabled_phrases[npc:id()][pi] = true
+end
+
+function action_disable_quest_phrase(fs,ss,dn,pi)
+	local npc = dialogs.who_is_npc(fs, ss)
+	if(pi=="0") then
+		pi = dn
+	end
+	if(quest_disabled_phrases[npc:id()]==nil) then
+		quest_disabled_phrases[npc:id()] = {}
+	end
+	quest_disabled_phrases[npc:id()][pi] = true
+end
+
+function create_bye_phrase()
+	return game.translate_string("actor_break_dialog_"..RandomVal)
+end
+
+function uni_dialog_precond(first_speaker, second_speaker)
+	local npc = dialogs.who_is_npc(first_speaker, second_speaker)
+	return character_community(npc) ~= "zombied" and character_community(npc) ~= "monolith"
+end
